@@ -230,6 +230,7 @@
     document.title = 'Suivi — ' + (profile().characterName || 'Personnage');
     var prevScroller = app.querySelector('[data-scroll-root]');
     var scrollTop = prevScroller ? prevScroller.scrollTop : 0;
+    var searchHadFocus = document.activeElement && document.activeElement.id === 'statsSearchInput';
     app.innerHTML =
       '<div style="display:flex;flex-direction:column;height:100%">' +
         '<div style="flex:1;min-height:0;display:flex;flex-direction:column">' + renderPage() + '</div>' +
@@ -240,7 +241,7 @@
     }
     var nextScroller = app.querySelector('[data-scroll-root]');
     if (nextScroller) nextScroller.scrollTop = scrollTop;
-    bindEvents();
+    bindEvents(searchHadFocus);
   }
 
   function renderTracker() {
@@ -487,7 +488,7 @@
   }
 
   // ---- event binding ----
-  function bindEvents() {
+  function bindEvents(searchHadFocus) {
     app.querySelectorAll('[data-action]').forEach(function (el) {
       el.addEventListener('click', onAction);
     });
@@ -566,9 +567,11 @@
 
     var statsSearchInput = document.getElementById('statsSearchInput');
     if (statsSearchInput) {
-      statsSearchInput.focus();
-      var caret = statsSearchInput.value.length;
-      statsSearchInput.setSelectionRange(caret, caret);
+      if (searchHadFocus) {
+        statsSearchInput.focus();
+        var caret = statsSearchInput.value.length;
+        statsSearchInput.setSelectionRange(caret, caret);
+      }
       statsSearchInput.addEventListener('input', function () {
         ui.statsSearch = statsSearchInput.value;
         render();
