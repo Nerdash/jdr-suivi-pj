@@ -834,7 +834,7 @@
         var dx = touch.clientX - touchStartX;
         var dy = touch.clientY - touchStartY;
         if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          grimoireStep(dx > 0 ? 1 : -1);
+          grimoireStep(dx < 0 ? 1 : -1);
         }
       }, { passive: true });
     }
