@@ -34,8 +34,9 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
 ### Pages (barre de navigation basse, 4 onglets)
 
 1. **Tracker** (page par défaut) — PV (bloc fusionné avec bouclier temporaire), emplacements de
-   sorts groupés par niveau en badges circulaires, ressource de classe, marqueur de
-   concentration, bouton "Repos" unique.
+   sorts groupés par niveau en badges circulaires, ressource(s) de classe (un bloc de badges par
+   ressource configurée, voir Paramètres ci-dessous), marqueur de concentration, bouton "Repos"
+   unique.
 2. **Stats** — caractéristiques (6) et compétences (18, D&D 5e, noms français) en lecture
    seule, avec champ de recherche filtrant la liste en direct. Les valeurs sont saisies
    manuellement dans Paramètres (l'app ne calcule aucun modificateur).
@@ -51,18 +52,30 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    onglet "Classe" en dernière position pour la section "Capacités de classe et dons" (non liée
    à un niveau). Navigation par tap sur un onglet (`data-action="grimoire-tab"`) ou par swipe
    horizontal sur la zone de contenu (`#grimoireSwipe`, listeners `touchstart`/`touchend` dans
-   `bindEvents()`) : swipe vers la droite = niveau suivant, swipe vers la gauche = niveau
+   `bindEvents()`) : swipe vers la gauche = niveau suivant, swipe vers la droite = niveau
    précédent, sans effet de bord aux extrémités (`grimoireStep()`). L'onglet actif
    (`ui.grimoireTab`, état éphémère) est recalé sur 0 si le niveau affiché n'existe plus après
    un changement de config dans Paramètres (ex. désactivation du niveau en cours de visionnage).
-4. **Paramètres** — nom du personnage, config des emplacements de sorts et ressource de classe,
-   saisie des caractéristiques/compétences, export/import JSON.
+4. **Paramètres** — nom du personnage, config des emplacements de sorts et des ressources de
+   classe, saisie des caractéristiques/compétences, export/import JSON.
    Les emplacements de sorts s'activent dans l'ordre croissant : impossible d'activer un niveau
    si un niveau inférieur est désactivé (message d'erreur `ui.settingsLevelError`, pas
    d'auto-activation en cascade). Désactiver un niveau qui a des niveaux supérieurs actifs ouvre
    une dialog de confirmation (`ui.disableLevelDialog`) car ces niveaux supérieurs seront
    désactivés en cascade ; désactiver le niveau actif le plus haut ne demande pas de
    confirmation.
+   **Ressource(s) de classe** : `profile.classResources` est un tableau (0..n éléments, pas de
+   limite) d'objets `{ id, label, max, used[] }` — chacun avec son propre libellé et son propre
+   nombre d'emplacements, éditables en ligne dans Paramètres (`data-action="class-resource-label"`
+   / `"class-resource-max"`), plus un bouton "+ Ajouter une ressource"
+   (`data-action="add-class-resource"`, crée via `makeClassResource()`/`generateId()`) et un
+   bouton de suppression par ligne (`data-action="remove-class-resource"`). Il n'y a plus de
+   notion d'« activer » : une ressource existe dans le tableau ou n'existe pas. La modale Repos
+   réinitialise tous les `used[]` de `classResources` d'un coup (case "Ressource(s) de classe").
+   `sanitizeProfile()` migre automatiquement l'ancien format mono-ressource
+   (`profile.classResource: { enabled, label, max, used }`) vers `classResources` au chargement
+   et à l'import JSON — les deux formats sont acceptés par `isValidProfile()` pour la
+   rétrocompatibilité des sauvegardes exportées avant ce changement.
 
 ## Décisions de conception (à respecter, divergent parfois du cahier des charges)
 

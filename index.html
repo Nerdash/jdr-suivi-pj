@@ -145,12 +145,20 @@
     return SKILL_NAMES.map(function (name) { return { name: name, modifier: 0 }; });
   }
 
+  function generateId() {
+    return 'cr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function makeClassResource(label, max) {
+    return { id: generateId(), label: label || 'Ressource de Classe', max: max || 0, used: [] };
+  }
+
   function defaultProfile() {
     return {
       characterName: 'Mon Personnage',
       hp: { current: 10, max: 10, temp: 0 },
       spellLevels: makeSpellLevels(),
-      classResource: { enabled: false, label: 'Ressource de Classe', max: 0, used: [] },
+      classResources: [],
       concentration: false,
       abilityScores: makeAbilityScores(),
       skills: makeSkills()
@@ -170,6 +178,27 @@
         if (typeof s.name !== 'string') s.name = SKILL_NAMES[i];
       });
     }
+    if (!Array.isArray(p.classResources)) {
+      if (p.classResource && typeof p.classResource === 'object' && p.classResource.enabled) {
+        var oldMax = typeof p.classResource.max === 'number' ? p.classResource.max : 0;
+        p.classResources = [{
+          id: generateId(),
+          label: typeof p.classResource.label === 'string' ? p.classResource.label : 'Ressource de Classe',
+          max: oldMax,
+          used: resizeUsedArray(p.classResource.used, oldMax)
+        }];
+      } else {
+        p.classResources = [];
+      }
+    }
+    delete p.classResource;
+    p.classResources.forEach(function (cr) {
+      if (typeof cr.id !== 'string' || !cr.id) cr.id = generateId();
+      if (typeof cr.label !== 'string') cr.label = 'Ressource de Classe';
+      if (typeof cr.max !== 'number' || isNaN(cr.max)) cr.max = 0;
+      cr.max = Math.max(0, Math.min(20, cr.max));
+      cr.used = resizeUsedArray(cr.used, cr.max);
+    });
     return p;
   }
 
@@ -414,16 +443,15 @@
           '</div>';
       }).join('');
 
-    var classHtml = '';
-    if (p.classResource.enabled) {
-      var cbadges = p.classResource.used.map(function (used, i) {
-        return '<div class="badge ' + (used ? 'badge-used' : 'badge-available') + '" data-action="toggle-class" data-index="' + i + '">' + (i + 1) + '</div>';
+    var classHtml = p.classResources.map(function (cr) {
+      var cbadges = cr.used.map(function (used, i) {
+        return '<div class="badge ' + (used ? 'badge-used' : 'badge-available') + '" data-action="toggle-class" data-id="' + cr.id + '" data-index="' + i + '">' + (i + 1) + '</div>';
       }).join('');
-      classHtml = '<div style="display:flex;flex-direction:column;gap:6px">' +
-        '<div style="font-size:12px;font-weight:600;color:var(--text-label);text-transform:uppercase;letter-spacing:0.08em">' + escapeHtml(p.classResource.label || 'Ressource') + '</div>' +
+      return '<div style="display:flex;flex-direction:column;gap:6px">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--text-label);text-transform:uppercase;letter-spacing:0.08em">' + escapeHtml(cr.label || 'Ressource') + '</div>' +
         '<div class="hscroll" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">' + cbadges + '</div>' +
         '</div>';
-    }
+    }).join('<div style="height:10px"></div>');
 
     return (
       '<div style="display:flex;flex-direction:column;height:100%;gap:14px">' +
@@ -589,6 +617,15 @@
         '</div>';
     }).join('');
 
+    var classResourceRows = p.classResources.map(function (cr) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg-card);border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
+        '<input type="text" data-action="class-resource-label" data-id="' + cr.id + '" value="' + escapeHtml(cr.label) + '" placeholder="Libellé (ex. Ki)" style="flex:1;min-width:0;height:36px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;padding:0 10px;box-sizing:border-box"/>' +
+        '<label style="font-size:11px;color:var(--text-muted)">Max</label>' +
+        '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + cr.max + '" data-action="class-resource-max" data-id="' + cr.id + '" style="width:42px;height:36px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;text-align:center;box-sizing:border-box"/>' +
+        '<div data-action="remove-class-resource" data-id="' + cr.id + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none">&times;</div>' +
+        '</div>';
+    }).join('');
+
     return (
       '<div data-scroll-root style="display:flex;flex-direction:column;height:100%;gap:14px;overflow-y:auto">' +
         '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px;flex:none" class="font-cinzel">Paramètres</div>' +
@@ -613,17 +650,11 @@
         '</div>' +
 
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
-          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Ressource de classe</label>' +
-          '<div style="display:flex;flex-direction:column;gap:10px;padding:12px;background:var(--bg-card);border-radius:12px;border:1px solid rgba(var(--border-tint),0.2)">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between">' +
-              '<div style="font-size:13px;font-weight:600">Activer</div>' +
-              '<div class="toggle-track" style="' + toggleTrackStyle(p.classResource.enabled) + '" data-action="toggle-class-enabled"><div class="toggle-knob" style="' + toggleKnobStyle(p.classResource.enabled) + '"></div></div>' +
-            '</div>' +
-            '<div style="display:flex;gap:10px">' +
-              '<input type="text" id="classLabelInput" value="' + escapeHtml(p.classResource.label) + '" ' + (p.classResource.enabled ? '' : 'disabled') + ' placeholder="Libellé (ex. Ki)" style="flex:1;height:40px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;padding:0 10px;box-sizing:border-box"/>' +
-              '<input type="text" inputmode="numeric" pattern="[0-9]*" id="classMaxInput" value="' + p.classResource.max + '" ' + (p.classResource.enabled ? '' : 'disabled') + ' style="width:52px;height:40px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;text-align:center;box-sizing:border-box"/>' +
-            '</div>' +
-          '</div>' +
+          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Ressource(s) de classe</label>' +
+          (p.classResources.length
+            ? '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2)">' + classResourceRows + '</div>'
+            : '') +
+          '<div data-action="add-class-resource" style="height:44px;border-radius:10px;background:var(--bg-card);border:1px dashed rgba(var(--border-tint),0.4);color:var(--text-label);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">+ Ajouter une ressource</div>' +
         '</div>' +
 
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
@@ -671,7 +702,7 @@
       { key: 'hp', label: 'Total de PV' },
       { key: 'spells', label: 'Emplacements de sorts' },
       { key: 'tempHp', label: 'PV temporaires' },
-      { key: 'classResource', label: p.classResource.label || 'Ressource de classe' }
+      { key: 'classResource', label: 'Ressource(s) de classe' }
     ];
     var rowsHtml = rows.map(function (r) {
       var checked = !!checks[r.key];
@@ -748,25 +779,26 @@
       });
     }
 
-    var classLabelInput = document.getElementById('classLabelInput');
-    if (classLabelInput) {
-      classLabelInput.addEventListener('input', function () {
-        profile().classResource.label = classLabelInput.value;
-        saveState();
+    app.querySelectorAll('[data-action="class-resource-label"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var id = el.getAttribute('data-id');
+        var cr = profile().classResources.find(function (x) { return x.id === id; });
+        if (cr) { cr.label = el.value; saveState(); }
       });
-    }
+    });
 
-    var classMaxInput = document.getElementById('classMaxInput');
-    if (classMaxInput) {
-      classMaxInput.addEventListener('change', function () {
-        var cr = profile().classResource;
-        var max = clamp(toInt(classMaxInput.value, cr.max), 0, 20);
+    app.querySelectorAll('[data-action="class-resource-max"]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        var id = el.getAttribute('data-id');
+        var cr = profile().classResources.find(function (x) { return x.id === id; });
+        if (!cr) return;
+        var max = clamp(toInt(el.value, cr.max), 0, 20);
         cr.max = max;
         cr.used = resizeUsedArray(cr.used, max);
         saveState();
         render();
       });
-    }
+    });
 
     app.querySelectorAll('[data-action="level-max"]').forEach(function (el) {
       el.addEventListener('change', function () {
@@ -872,9 +904,22 @@
         break;
       }
       case 'toggle-class': {
+        var crId = e.currentTarget.getAttribute('data-id');
         var cidx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-        var cr = profile().classResource;
-        cr.used[cidx] = !cr.used[cidx];
+        var cr = profile().classResources.find(function (x) { return x.id === crId; });
+        if (cr) { cr.used[cidx] = !cr.used[cidx]; saveState(); render(); }
+        break;
+      }
+      case 'add-class-resource': {
+        profile().classResources.push(makeClassResource('Ressource de Classe', 0));
+        saveState(); render();
+        break;
+      }
+      case 'remove-class-resource': {
+        var removeId = e.currentTarget.getAttribute('data-id');
+        var crs = profile().classResources;
+        var removeIdx = crs.findIndex(function (x) { return x.id === removeId; });
+        if (removeIdx !== -1) crs.splice(removeIdx, 1);
         saveState(); render();
         break;
       }
@@ -922,11 +967,6 @@
         var tabValue = e.currentTarget.getAttribute('data-tab');
         ui.grimoireTab = tabValue === 'classe' ? 'classe' : parseInt(tabValue, 10);
         render();
-        break;
-      }
-      case 'toggle-class-enabled': {
-        profile().classResource.enabled = !profile().classResource.enabled;
-        saveState(); render();
         break;
       }
       case 'toggle-concentration': {
@@ -1016,8 +1056,10 @@
         if (l.enabled) l.used = l.used.map(function () { return false; });
       });
     }
-    if (checks.classResource && p.classResource.enabled) {
-      p.classResource.used = p.classResource.used.map(function () { return false; });
+    if (checks.classResource) {
+      p.classResources.forEach(function (cr) {
+        cr.used = cr.used.map(function () { return false; });
+      });
     }
     ui.shortRestOpen = false;
     saveState();
@@ -1047,7 +1089,17 @@
       var l = data.spellLevels[i];
       if (typeof l.level !== 'number' || typeof l.enabled !== 'boolean' || typeof l.max !== 'number' || !Array.isArray(l.used)) return false;
     }
-    if (!data.classResource || typeof data.classResource.enabled !== 'boolean' || typeof data.classResource.max !== 'number' || !Array.isArray(data.classResource.used)) return false;
+    if (data.classResources !== undefined) {
+      if (!Array.isArray(data.classResources)) return false;
+      for (var cri = 0; cri < data.classResources.length; cri++) {
+        var criItem = data.classResources[cri];
+        if (!criItem || typeof criItem.label !== 'string' || typeof criItem.max !== 'number' || !Array.isArray(criItem.used)) return false;
+      }
+    } else if (data.classResource !== undefined) {
+      if (!data.classResource || typeof data.classResource.enabled !== 'boolean' || typeof data.classResource.max !== 'number' || !Array.isArray(data.classResource.used)) return false;
+    } else {
+      return false;
+    }
     if (data.abilityScores !== undefined) {
       if (typeof data.abilityScores !== 'object' || !data.abilityScores) return false;
       for (var a = 0; a < ABILITY_KEYS.length; a++) {
