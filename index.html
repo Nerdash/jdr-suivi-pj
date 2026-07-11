@@ -425,7 +425,7 @@
             ABILITY_KEYS.map(function (key) {
               return '<div style="display:flex;flex-direction:column;gap:4px;min-width:0">' +
                 '<label style="font-size:11px;color:#a08d64;text-align:center">' + ABILITY_LABELS[key] + '</label>' +
-                '<input type="text" inputmode="numeric" pattern="-?[0-9]*" data-action="ability-input" data-key="' + key + '" value="' + formatSigned(p.abilityScores[key]) + '" style="width:100%;height:44px;background:#171209;border:1px solid rgba(196,164,108,0.24);border-radius:8px;color:#efe4cf;font-size:15px;text-align:center;box-sizing:border-box"/>' +
+                '<input type="text" inputmode="text" pattern="-?[0-9]*" data-action="ability-input" data-key="' + key + '" value="' + formatSigned(p.abilityScores[key]) + '" style="width:100%;height:44px;background:#171209;border:1px solid rgba(196,164,108,0.24);border-radius:8px;color:#efe4cf;font-size:15px;text-align:center;box-sizing:border-box"/>' +
                 '</div>';
             }).join('') +
           '</div>' +
@@ -438,7 +438,7 @@
               return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#2b2119;border-bottom:1px solid rgba(196,164,108,0.14)">' +
                 '<div style="flex:1;font-size:13px;font-weight:600;color:#efe4cf">' + escapeHtml(s.name) + '</div>' +
                 '<div data-action="skill-dec" data-index="' + idx + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none">&minus;</div>' +
-                '<input type="text" inputmode="numeric" pattern="-?[0-9]*" data-action="skill-input" data-index="' + idx + '" value="' + formatSigned(s.modifier) + '" style="width:44px;height:36px;background:#171209;border:1px solid rgba(196,164,108,0.24);border-radius:8px;color:#efe4cf;font-size:13px;text-align:center;box-sizing:border-box"/>' +
+                '<input type="text" inputmode="text" pattern="-?[0-9]*" data-action="skill-input" data-index="' + idx + '" value="' + formatSigned(s.modifier) + '" style="width:44px;height:36px;background:#171209;border:1px solid rgba(196,164,108,0.24);border-radius:8px;color:#efe4cf;font-size:13px;text-align:center;box-sizing:border-box"/>' +
                 '<div data-action="skill-inc" data-index="' + idx + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none">+</div>' +
                 '</div>';
             }).join('') +
