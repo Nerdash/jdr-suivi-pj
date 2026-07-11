@@ -104,6 +104,9 @@ révisé"). En cas de divergence, les arbitrages suivants ont été retenus :
 - Les cases à cocher de la modale Repos sont toutes décochées par défaut à chaque ouverture.
 - Les champs "Max" (sorts, ressource de classe) sont désactivés visuellement tant que le niveau
   correspondant n'est pas activé.
+- Tout `<input type="text">` voit son contenu présélectionné au focus (listener délégué global
+  `focusin` sur `#app`, tape directement pour remplacer la valeur), **sauf** le champ de
+  recherche des compétences (`#statsSearchInput`) qui reste un filtre en direct.
 
 ## Thème clair/sombre
 

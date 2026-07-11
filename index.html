@@ -1127,6 +1127,14 @@
     if (e.target && e.target.id === 'tempDisplay') { ui.editingTemp = true; render(); }
   });
 
+  // présélectionne le contenu de tout champ texte au focus, pour faciliter la saisie directe
+  // (la recherche de compétences est exclue : c'est un filtre en direct, pas une valeur à remplacer)
+  app.addEventListener('focusin', function (e) {
+    if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text' && e.target.id !== 'statsSearchInput') {
+      e.target.select();
+    }
+  });
+
   function startEditMax() { ui.editingMax = true; render(); }
 
   function applyDamage() {
