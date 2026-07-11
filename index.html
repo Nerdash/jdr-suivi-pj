@@ -246,6 +246,7 @@
     importError: '',
     statsSearch: '',
     grimoireTab: 0, // niveau numérique (0..9) ou 'classe'
+    grimoireFilters: { action: false, bonus: false, reaction: false }, // conservés entre les onglets de niveau
     settingsLevelError: '',
     disableLevelDialog: null // { level: number } quand la confirmation de désactivation est ouverte
   };
@@ -544,8 +545,21 @@
     return tab === 'classe' ? 'Classe' : String(tab);
   }
 
-  function renderGrimoireSection(section) {
-    var rowsHtml = section.spells.map(function (spell, i) {
+  var GRIMOIRE_FILTERS = [
+    { key: 'action', label: 'Action', prefix: 'ACTION', style: 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);' },
+    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);' },
+    { key: 'reaction', label: 'Réaction', prefix: 'RÉACTION', style: 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);' }
+  ];
+
+  function spellMatchesGrimoireFilters(spell) {
+    var activeFilters = GRIMOIRE_FILTERS.filter(function (f) { return ui.grimoireFilters[f.key]; });
+    if (!activeFilters.length) return true;
+    var t = spell.type.toUpperCase();
+    return activeFilters.some(function (f) { return t.indexOf(f.prefix) === 0; });
+  }
+
+  function renderGrimoireSection(section, spells) {
+    var rowsHtml = spells.map(function (spell, i) {
       return '<div style="padding:11px 14px;background:' + (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)') + ';border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
           '<div style="font-size:14px;font-weight:700;color:var(--text-main);font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
@@ -581,14 +595,34 @@
         '">' + escapeHtml(grimoireTabLabel(tab)) + '</div>';
     }).join('');
 
+    var filterChipsHtml = GRIMOIRE_FILTERS.map(function (f) {
+      var active = !!ui.grimoireFilters[f.key];
+      return '<div data-action="toggle-grimoire-filter" data-filter="' + f.key + '" style="flex:none;height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:0.02em;cursor:pointer;user-select:none;' +
+        (active ? f.style : 'background:transparent;border:1px solid rgba(var(--border-tint),0.25);color:var(--text-dim);') +
+        '">' + escapeHtml(f.label) + '</div>';
+    }).join('');
+
     var matchingSections = SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
-    var contentHtml = matchingSections.length
-      ? matchingSections.map(renderGrimoireSection).join('<div style="height:14px"></div>')
-      : '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort à ce niveau.</div>';
+    var sectionsWithSpells = matchingSections.map(function (s) {
+      return { section: s, spells: s.spells.filter(spellMatchesGrimoireFilters) };
+    }).filter(function (x) { return x.spells.length > 0; });
+    var totalSpellsAtLevel = matchingSections.reduce(function (sum, s) { return sum + s.spells.length; }, 0);
+
+    var contentHtml;
+    if (sectionsWithSpells.length) {
+      contentHtml = sectionsWithSpells.map(function (x) { return renderGrimoireSection(x.section, x.spells); }).join('<div style="height:14px"></div>');
+    } else if (totalSpellsAtLevel === 0) {
+      contentHtml = '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort à ce niveau.</div>';
+    } else {
+      contentHtml = '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort ne correspond aux filtres sélectionnés.</div>';
+    }
 
     return (
       '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
-        '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px;flex:none" class="font-cinzel">Grimoire</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex:none;gap:8px">' +
+          '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">Grimoire</div>' +
+          '<div style="display:flex;gap:6px">' + filterChipsHtml + '</div>' +
+        '</div>' +
         '<div class="hscroll" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">' + tabsHtml + '</div>' +
         '<div id="grimoireSwipe" data-scroll-root style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px">' + contentHtml + '</div>' +
       '</div>'
@@ -966,6 +1000,12 @@
       case 'grimoire-tab': {
         var tabValue = e.currentTarget.getAttribute('data-tab');
         ui.grimoireTab = tabValue === 'classe' ? 'classe' : parseInt(tabValue, 10);
+        render();
+        break;
+      }
+      case 'toggle-grimoire-filter': {
+        var filterKey = e.currentTarget.getAttribute('data-filter');
+        ui.grimoireFilters[filterKey] = !ui.grimoireFilters[filterKey];
         render();
         break;
       }

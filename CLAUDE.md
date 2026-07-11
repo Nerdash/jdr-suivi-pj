@@ -56,6 +56,11 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    précédent, sans effet de bord aux extrémités (`grimoireStep()`). L'onglet actif
    (`ui.grimoireTab`, état éphémère) est recalé sur 0 si le niveau affiché n'existe plus après
    un changement de config dans Paramètres (ex. désactivation du niveau en cours de visionnage).
+   Filtres par type sur la même ligne que le titre "Grimoire", alignés à droite : Action / Bonus
+   / Réaction (`GRIMOIRE_FILTERS`, chips `data-action="toggle-grimoire-filter"`). Plusieurs
+   filtres actifs se combinent en OR (`spellMatchesGrimoireFilters()`) ; aucun filtre actif =
+   tout afficher. L'état (`ui.grimoireFilters`, éphémère) est conservé en changeant d'onglet de
+   niveau puisqu'il n'est jamais réinitialisé par `renderGrimoire()`/`grimoireStep()`.
 4. **Paramètres** — nom du personnage, config des emplacements de sorts et des ressources de
    classe, saisie des caractéristiques/compétences, export/import JSON.
    Les emplacements de sorts s'activent dans l'ordre croissant : impossible d'activer un niveau
