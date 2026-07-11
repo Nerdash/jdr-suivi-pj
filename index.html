@@ -196,6 +196,77 @@
     return svg.replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"');
   }
 
+  // ---- grimoire (Calix Noctavel) ----
+  var SPELLBOOK = {
+    characterName: "Calix Noctavel",
+    subtitle: "Barde · Collège du Savoir · Tieffeline avec ascendance infernale",
+    sections: [
+      {
+        title: "Sorts mineurs (niveau 0)",
+        spells: [
+          { name: "Moquerie cruelle", type: "ACTION", range: "18m", desc: "Jet de sauvegarde de Sagesse ou 1d4 dégâts psychiques + désavantage au prochain jet d'attaque de la cible.", note: "Fonctionne si la cible entend (sans comprendre). 2d4 au niveau 5, 3d4 au niveau 11." },
+          { name: "Main de mage", type: "ACTION", range: "9m", desc: "Main spectrale : manipule des objets, ouvre des portes non verrouillées, range ou récupère un objet. Dure 1 minute.", note: "Ne peut pas attaquer ni porter plus de 5 kg." },
+          { name: "Message", type: "ACTION", range: "36m", desc: "Murmure secret à une cible visible. Elle peut répondre. Traverse les obstacles (sauf métal/plomb).", note: "Durée : 1 round. La cible seule entend." },
+          { name: "Thaumaturgie", type: "ACTION", range: "Illimitée", desc: "Effets mineurs : voix amplifiée, flammes, tremblements, portes. Durée 1 minute.", note: "Ascendance infernale." }
+        ]
+      },
+      {
+        title: "Niveau 1",
+        spells: [
+          { name: "Fou rire de Tasha", type: "ACTION", range: "9m · Conc. 1 min", desc: "Jet de sauvegarde de Sagesse ou la cible tombe à terre, incapable d'agir. Nouveau jet en fin de tour ou après des dégâts.", note: "Inefficace si Intelligence 4 ou moins." },
+          { name: "Identification", type: "RITUEL 1 MIN", range: "Contact", desc: "Révèle les propriétés d'un objet magique (charges, sorts) ou les sorts actifs sur une créature.", note: "Utilisable sans emplacement en rituel. Nécessite une perle à 100 po + une plume de hibou." },
+          { name: "Lueurs féeriques", type: "ACTION", range: "18m · Conc. 1 min", desc: "Cube de 6m : jet de sauvegarde de Dextérité ou les créatures sont illuminées. Avantage sur toutes les attaques contre elles. Annule l'invisibilité.", note: "Idéal au tour 1 si les ennemis sont groupés." },
+          { name: "Mot de guérison", type: "BONUS", range: "18m", desc: "Soigne 1d4 + Cha à distance. +1d4 par niveau supérieur. Relève un allié à 0 PV sans avoir à s'approcher.", note: "Priorité si un allié tombe. Permet d'agir aussi en action ce tour." },
+          { name: "Soins", type: "ACTION", range: "Contact", desc: "Soigne 1d8 + Cha au toucher. +1d8 par niveau supérieur.", note: "Nécessite de s'approcher. Préférer Mot de guérison en combat." }
+        ]
+      },
+      {
+        title: "Niveau 2",
+        spells: [
+          { name: "Image miroir", type: "ACTION", range: "Personnel · 1 min", desc: "3 doubles illusoires. Les attaques sont redirigées sur 1d20 : 6+ (3 doubles) / 8+ (2) / 11+ (1). CA du double = 10 + mod. Dex.", note: "Défense passive, pas de concentration." },
+          { name: "Représailles infernales", type: "RÉACTION", range: "Portée", desc: "Quand blessée par une créature visible : 2d10 dégâts de feu à la cible. Jet de sauvegarde de Dextérité, demi-dégâts si réussi.", note: "Ascendance infernale. 1x / repos long. Lancé comme un sort de niveau 2. Disponible dès le niveau 3." },
+          { name: "Silence", type: "ACTION", range: "36m · Conc. 10 min", desc: "Sphère de 6m : aucun son, immunité au tonnerre. Impossible de lancer des sorts à composante verbale dans la zone.", note: "Rituel possible. Bloque les lanceurs de sorts ennemis." },
+          { name: "Ténèbres", type: "ACTION", range: "60m · Conc. 10 min", desc: "Sphère de 4,5m de ténèbres magiques. Bloque la vision normale et la vision dans le noir.", note: "Ascendance infernale. 1x / repos long. Disponible dès le niveau 5." }
+        ]
+      },
+      {
+        title: "Niveau 3",
+        spells: [
+          { name: "Communication à distance", type: "ACTION", range: "Illimitée", desc: "Message de 25 mots à une créature connue, n'importe où. Elle peut répondre immédiatement.", note: "5% d'échec si sur un autre plan d'existence." },
+          { name: "Hâte", type: "ACTION", range: "9m · Conc. 1 min", desc: "Cible : vitesse x2, +2 CA, avantage aux jets de Dextérité, action supplémentaire (1 attaque / Foncer / Désengager / Se cacher / Utiliser un objet).", note: "À la fin : léthargie 1 tour. Protéger sa concentration absolument." },
+          { name: "Mot de guérison de groupe", type: "BONUS", range: "18m", desc: "Jusqu'à 6 créatures visibles récupèrent chacune 1d4 + Cha. +1d4 par niveau au-delà du 3.", note: "Idéal si plusieurs alliés sont faibles simultanément." },
+          { name: "Retour à la vie", type: "ACTION", range: "Contact", desc: "Ramène une créature morte depuis moins d'une minute à 1 PV.", note: "Consomme des diamants (300 po). Ne restaure pas les membres perdus." }
+        ]
+      },
+      {
+        title: "Niveau 4",
+        spells: [
+          { name: "Porte dimensionnelle", type: "ACTION", range: "150m", desc: "Téléportation vers un endroit visible, visualisé ou décrit. Peut emmener 1 créature consentante à 1,5m.", note: "Échec + 4d6 dégâts si la destination est occupée." }
+        ]
+      },
+      {
+        title: "Capacités de classe et dons",
+        spells: [
+          { name: "Inspiration bardique", type: "BONUS", range: "18m", desc: "Donne 1d6 (d8 dès niveau 5) à une créature. Elle ajoute le dé à un jet après le lancer, avant l'annonce du MD.", note: "Utilisations = mod. Cha. Recharge à un repos long (repos court dès niveau 5)." },
+          { name: "Mots cinglants", type: "RÉACTION", range: "18m", desc: "Après un jet (attaque/carac./dégâts) d'une créature : dépense 1 inspiration bardique, soustrait le dé du résultat.", note: "Avant l'annonce du MD. Inefficace si la cible ne peut pas entendre ou est immunisée aux charmes." },
+          { name: "Chant reposant", type: "REPOS COURT", range: "–", desc: "Les alliés qui dépensent des dés de vie lors d'un repos court récupèrent +1d6 PV supplémentaires.", note: "Passe à 1d8 au niveau 9, 1d10 au niveau 13, 1d12 au niveau 17." },
+          { name: "Meneur exaltant", type: "10 MIN", range: "9m", desc: "Jusqu'à 6 créatures gagnent des PV temporaires = niveau + mod. Cha. Recharge à un repos court ou long.", note: "Prérequis : Cha 13+. Idéal avant un combat anticipé." },
+          { name: "Chercheur", type: "PASSIF", range: "–", desc: "Si une information est inconnue : Calix sait généralement où ou auprès de qui la trouver.", note: "Background Sage. Le MD décide si l'information est accessible." }
+        ]
+      }
+    ]
+  };
+
+  function spellBadgeStyle(type) {
+    var t = type.toUpperCase();
+    if (t.indexOf('BONUS') === 0) return 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:#86efac;';
+    if (t.indexOf('RÉACTION') === 0) return 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:#fca5a5;';
+    if (t.indexOf('RITUEL') === 0) return 'background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.45);color:#c4b5fd;';
+    if (t.indexOf('PASSIF') === 0) return 'background:rgba(148,163,184,0.16);border:1px solid rgba(148,163,184,0.45);color:#cbd5e1;';
+    if (t.indexOf('ACTION') === 0) return 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:#7dd3fc;';
+    return 'background:rgba(196,164,108,0.16);border:1px solid rgba(196,164,108,0.45);color:#e0c890;';
+  }
+
   // ---- render ----
   var app = document.getElementById('app');
 
@@ -360,14 +431,34 @@
   }
 
   function renderGrimoire() {
+    var sectionsHtml = SPELLBOOK.sections.map(function (section) {
+      var rowsHtml = section.spells.map(function (spell, i) {
+        return '<div style="padding:11px 14px;background:' + (i % 2 ? '#241a10' : '#2b2119') + ';border-bottom:1px solid rgba(196,164,108,0.14)">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
+            '<div style="font-size:14px;font-weight:700;color:#efe4cf;font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
+            '<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
+              '<div style="' + spellBadgeStyle(spell.type) + 'padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap">' + escapeHtml(spell.type) + '</div>' +
+              '<div style="font-size:10px;color:#a08d64;white-space:nowrap">' + escapeHtml(spell.range) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:12.5px;color:#c9bb9c;margin-top:6px;line-height:1.4">' + escapeHtml(spell.desc) + '</div>' +
+          (spell.note ? '<div style="font-size:11px;color:#8a7a54;font-style:italic;margin-top:4px;line-height:1.3">' + escapeHtml(spell.note) + '</div>' : '') +
+        '</div>';
+      }).join('');
+
+      return '<div style="display:flex;flex-direction:column;gap:6px">' +
+        '<div style="font-size:11px;color:#b8a988;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">' + escapeHtml(section.title) + '</div>' +
+        '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(196,164,108,0.2)">' + rowsHtml + '</div>' +
+      '</div>';
+    }).join('<div style="height:14px"></div>');
+
     return (
-      '<div style="display:flex;flex-direction:column;height:100%;gap:14px">' +
-        '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px;flex:none" class="font-cinzel">Grimoire</div>' +
-        '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#6b5a3b;text-align:center">' +
-          '<div style="color:#4a3c28">' + iconResized(ICON_BOOK, 40) + '</div>' +
-          '<div style="font-size:15px;font-weight:600;color:#a08d64" class="font-cinzel">Work in progress</div>' +
-          '<div style="font-size:12px;color:#6b5a3b;max-width:220px">La gestion des sorts arrivera dans une prochaine mise à jour.</div>' +
+      '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
+        '<div style="flex:none">' +
+          '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">Grimoire</div>' +
+          '<div style="font-size:12px;color:#a08d64;margin-top:2px">' + escapeHtml(SPELLBOOK.characterName) + ' — ' + escapeHtml(SPELLBOOK.subtitle) + '</div>' +
         '</div>' +
+        '<div data-scroll-root style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px">' + sectionsHtml + '</div>' +
       '</div>'
     );
   }
