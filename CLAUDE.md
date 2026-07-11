@@ -46,8 +46,23 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    personnage Calix Noctavel — pas d'UI d'édition. Une gestion générique (CRUD depuis
    Paramètres, multi-personnage) reste à faire si besoin ; voir `specifications_jdr_mobile_v2.md`
    section 7.3 pour la spec d'origine.
+   Pagination par onglets sous le titre "Grimoire" : un onglet par niveau de sort de 0 à
+   `maxEnabledSpellLevel()` (le plus haut niveau d'emplacement activé dans Paramètres), plus un
+   onglet "Classe" en dernière position pour la section "Capacités de classe et dons" (non liée
+   à un niveau). Navigation par tap sur un onglet (`data-action="grimoire-tab"`) ou par swipe
+   horizontal sur la zone de contenu (`#grimoireSwipe`, listeners `touchstart`/`touchend` dans
+   `bindEvents()`) : swipe vers la droite = niveau suivant, swipe vers la gauche = niveau
+   précédent, sans effet de bord aux extrémités (`grimoireStep()`). L'onglet actif
+   (`ui.grimoireTab`, état éphémère) est recalé sur 0 si le niveau affiché n'existe plus après
+   un changement de config dans Paramètres (ex. désactivation du niveau en cours de visionnage).
 4. **Paramètres** — nom du personnage, config des emplacements de sorts et ressource de classe,
    saisie des caractéristiques/compétences, export/import JSON.
+   Les emplacements de sorts s'activent dans l'ordre croissant : impossible d'activer un niveau
+   si un niveau inférieur est désactivé (message d'erreur `ui.settingsLevelError`, pas
+   d'auto-activation en cascade). Désactiver un niveau qui a des niveaux supérieurs actifs ouvre
+   une dialog de confirmation (`ui.disableLevelDialog`) car ces niveaux supérieurs seront
+   désactivés en cascade ; désactiver le niveau actif le plus haut ne demande pas de
+   confirmation.
 
 ## Décisions de conception (à respecter, divergent parfois du cahier des charges)
 

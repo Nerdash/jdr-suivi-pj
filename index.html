@@ -215,7 +215,10 @@
     shortRestOpen: false,
     shortRestChecks: { hp: false, spells: false, tempHp: false, classResource: false },
     importError: '',
-    statsSearch: ''
+    statsSearch: '',
+    grimoireTab: 0, // niveau numérique (0..9) ou 'classe'
+    settingsLevelError: '',
+    disableLevelDialog: null // { level: number } quand la confirmation de désactivation est ouverte
   };
 
   function profile() { return state.profiles[state.activeProfileIndex]; }
@@ -256,6 +259,7 @@
       {
         title: "Sorts mineurs (niveau 0)",
         levelTag: "Niv. 0",
+        level: 0,
         spells: [
           { name: "Moquerie cruelle", type: "ACTION", range: "18m", desc: "Jet de sauvegarde de Sagesse ou 1d4 dégâts psychiques + désavantage au prochain jet d'attaque de la cible.", note: "Fonctionne si la cible entend (sans comprendre). 2d4 au niveau 5, 3d4 au niveau 11." },
           { name: "Main de mage", type: "ACTION", range: "9m", desc: "Main spectrale : manipule des objets, ouvre des portes non verrouillées, range ou récupère un objet. Dure 1 minute.", note: "Ne peut pas attaquer ni porter plus de 5 kg." },
@@ -266,6 +270,7 @@
       {
         title: "Niveau 1",
         levelTag: "Niv. 1",
+        level: 1,
         spells: [
           { name: "Fou rire de Tasha", type: "ACTION", range: "9m · Conc. 1 min", desc: "Jet de sauvegarde de Sagesse ou la cible tombe à terre, incapable d'agir. Nouveau jet en fin de tour ou après des dégâts.", note: "Inefficace si Intelligence 4 ou moins." },
           { name: "Identification", type: "RITUEL 1 MIN", range: "Contact", desc: "Révèle les propriétés d'un objet magique (charges, sorts) ou les sorts actifs sur une créature.", note: "Utilisable sans emplacement en rituel. Nécessite une perle à 100 po + une plume de hibou." },
@@ -277,6 +282,7 @@
       {
         title: "Niveau 2",
         levelTag: "Niv. 2",
+        level: 2,
         spells: [
           { name: "Image miroir", type: "ACTION", range: "Personnel · 1 min", desc: "3 doubles illusoires. Les attaques sont redirigées sur 1d20 : 6+ (3 doubles) / 8+ (2) / 11+ (1). CA du double = 10 + mod. Dex.", note: "Défense passive, pas de concentration." },
           { name: "Représailles infernales", type: "RÉACTION", range: "Portée", desc: "Quand blessée par une créature visible : 2d10 dégâts de feu à la cible. Jet de sauvegarde de Dextérité, demi-dégâts si réussi.", note: "Ascendance infernale. 1x / repos long. Lancé comme un sort de niveau 2. Disponible dès le niveau 3." },
@@ -287,6 +293,7 @@
       {
         title: "Niveau 3",
         levelTag: "Niv. 3",
+        level: 3,
         spells: [
           { name: "Communication à distance", type: "ACTION", range: "Illimitée", desc: "Message de 25 mots à une créature connue, n'importe où. Elle peut répondre immédiatement.", note: "5% d'échec si sur un autre plan d'existence." },
           { name: "Hâte", type: "ACTION", range: "9m · Conc. 1 min", desc: "Cible : vitesse x2, +2 CA, avantage aux jets de Dextérité, action supplémentaire (1 attaque / Foncer / Désengager / Se cacher / Utiliser un objet).", note: "À la fin : léthargie 1 tour. Protéger sa concentration absolument." },
@@ -297,6 +304,7 @@
       {
         title: "Niveau 4",
         levelTag: "Niv. 4",
+        level: 4,
         spells: [
           { name: "Porte dimensionnelle", type: "ACTION", range: "150m", desc: "Téléportation vers un endroit visible, visualisé ou décrit. Peut emmener 1 créature consentante à 1,5m.", note: "Échec + 4d6 dégâts si la destination est occupée." }
         ]
@@ -304,6 +312,7 @@
       {
         title: "Capacités de classe et dons",
         levelTag: "Classe",
+        level: 'classe',
         spells: [
           { name: "Inspiration bardique", type: "BONUS", range: "18m", desc: "Donne 1d6 (d8 dès niveau 5) à une créature. Elle ajoute le dé à un jet après le lancer, avant l'annonce du MD.", note: "Utilisations = mod. Cha. Recharge à un repos long (repos court dès niveau 5)." },
           { name: "Mots cinglants", type: "RÉACTION", range: "18m", desc: "Après un jet (attaque/carac./dégâts) d'une créature : dépense 1 inspiration bardique, soustrait le dé du résultat.", note: "Avant l'annonce du MD. Inefficace si la cible ne peut pas entendre ou est immunisée aux charmes." },
@@ -367,6 +376,9 @@
       '</div>';
     if (ui.shortRestOpen) {
       app.insertAdjacentHTML('beforeend', renderShortRestModal());
+    }
+    if (ui.disableLevelDialog) {
+      app.insertAdjacentHTML('beforeend', renderDisableLevelModal());
     }
     var nextScroller = app.querySelector('[data-scroll-root]');
     if (nextScroller) nextScroller.scrollTop = scrollTop;
@@ -488,35 +500,69 @@
     );
   }
 
-  function renderGrimoire() {
-    var sectionsHtml = SPELLBOOK.sections.map(function (section) {
-      var rowsHtml = section.spells.map(function (spell, i) {
-        return '<div style="padding:11px 14px;background:' + (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)') + ';border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
-            '<div style="font-size:14px;font-weight:700;color:var(--text-main);font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
-            '<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
-              '<div style="display:flex;align-items:center;gap:5px">' +
-                '<div style="background:rgba(var(--border-tint),0.12);border:1px solid rgba(var(--border-tint),0.32);color:var(--text-chip);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + escapeHtml(section.levelTag) + '</div>' +
-                '<div style="' + spellBadgeStyle(spell.type) + 'padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap">' + escapeHtml(spell.type) + '</div>' +
-              '</div>' +
-              '<div style="font-size:10px;color:var(--text-muted);white-space:nowrap">' + escapeHtml(spell.range) + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div style="font-size:12.5px;color:var(--text-desc);margin-top:6px;line-height:1.4">' + escapeHtml(spell.desc) + '</div>' +
-          (spell.note ? '<div style="font-size:11px;color:var(--text-note);font-style:italic;margin-top:4px;line-height:1.3">' + escapeHtml(spell.note) + '</div>' : '') +
-        '</div>';
-      }).join('');
+  function maxEnabledSpellLevel() {
+    var enabledLevels = profile().spellLevels.filter(function (l) { return l.enabled; }).map(function (l) { return l.level; });
+    return enabledLevels.length ? Math.max.apply(null, enabledLevels) : 0;
+  }
 
-      return '<div style="display:flex;flex-direction:column;gap:6px">' +
-        '<div style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">' + escapeHtml(section.title) + '</div>' +
-        '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2)">' + rowsHtml + '</div>' +
+  function grimoireTabs() {
+    var tabs = [];
+    for (var i = 0; i <= maxEnabledSpellLevel(); i++) tabs.push(i);
+    tabs.push('classe');
+    return tabs;
+  }
+
+  function grimoireTabLabel(tab) {
+    return tab === 'classe' ? 'Classe' : String(tab);
+  }
+
+  function renderGrimoireSection(section) {
+    var rowsHtml = section.spells.map(function (spell, i) {
+      return '<div style="padding:11px 14px;background:' + (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)') + ';border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text-main);font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
+          '<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
+            '<div style="display:flex;align-items:center;gap:5px">' +
+              '<div style="background:rgba(var(--border-tint),0.12);border:1px solid rgba(var(--border-tint),0.32);color:var(--text-chip);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + escapeHtml(section.levelTag) + '</div>' +
+              '<div style="' + spellBadgeStyle(spell.type) + 'padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap">' + escapeHtml(spell.type) + '</div>' +
+            '</div>' +
+            '<div style="font-size:10px;color:var(--text-muted);white-space:nowrap">' + escapeHtml(spell.range) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:12.5px;color:var(--text-desc);margin-top:6px;line-height:1.4">' + escapeHtml(spell.desc) + '</div>' +
+        (spell.note ? '<div style="font-size:11px;color:var(--text-note);font-style:italic;margin-top:4px;line-height:1.3">' + escapeHtml(spell.note) + '</div>' : '') +
       '</div>';
-    }).join('<div style="height:14px"></div>');
+    }).join('');
+
+    return '<div style="display:flex;flex-direction:column;gap:6px">' +
+      '<div style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">' + escapeHtml(section.title) + '</div>' +
+      '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2)">' + rowsHtml + '</div>' +
+    '</div>';
+  }
+
+  function renderGrimoire() {
+    var tabs = grimoireTabs();
+    if (tabs.indexOf(ui.grimoireTab) === -1) ui.grimoireTab = 0;
+
+    var tabsHtml = tabs.map(function (tab) {
+      var active = tab === ui.grimoireTab;
+      return '<div data-action="grimoire-tab" data-tab="' + tab + '" style="flex:none;min-width:38px;height:32px;padding:0 10px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;user-select:none;' +
+        (active
+          ? 'background:rgba(var(--border-tint),0.28);border:1px solid var(--border-strong);color:var(--text-gold);'
+          : 'background:transparent;border:1px solid rgba(var(--border-tint),0.2);color:var(--text-dim);') +
+        '">' + escapeHtml(grimoireTabLabel(tab)) + '</div>';
+    }).join('');
+
+    var matchingSections = SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
+    var contentHtml = matchingSections.length
+      ? matchingSections.map(renderGrimoireSection).join('<div style="height:14px"></div>')
+      : '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort à ce niveau.</div>';
 
     return (
       '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
         '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px;flex:none" class="font-cinzel">Grimoire</div>' +
-        '<div data-scroll-root style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px">' + sectionsHtml + '</div>' +
+        '<div class="hscroll" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">' + tabsHtml + '</div>' +
+        '<div id="grimoireSwipe" data-scroll-root style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px">' + contentHtml + '</div>' +
       '</div>'
     );
   }
@@ -531,8 +577,10 @@
   function renderSettings() {
     var p = profile();
 
-    var levelRows = p.spellLevels.map(function (l) {
-      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-card);border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
+    var levelRows = p.spellLevels.map(function (l, idx) {
+      var lowerLevelsEnabled = p.spellLevels.slice(0, idx).every(function (x) { return x.enabled; });
+      var locked = !l.enabled && !lowerLevelsEnabled;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-card);border-bottom:1px solid rgba(var(--border-tint),0.14);' + (locked ? 'opacity:0.45;' : '') + '">' +
         '<div style="width:56px;font-size:13px;font-weight:600;color:var(--text-main)">Niv. ' + l.level + '</div>' +
         '<div class="toggle-track" style="' + toggleTrackStyle(l.enabled) + '" data-action="toggle-level" data-level="' + l.level + '"><div class="toggle-knob" style="' + toggleKnobStyle(l.enabled) + '"></div></div>' +
         '<div style="flex:1"></div>' +
@@ -561,6 +609,7 @@
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
           '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Emplacements de sorts</label>' +
           '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2)">' + levelRows + '</div>' +
+          (ui.settingsLevelError ? '<div style="font-size:11px;color:#ef4444">' + escapeHtml(ui.settingsLevelError) + '</div>' : '') +
         '</div>' +
 
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
@@ -639,6 +688,20 @@
         '<div style="display:flex;gap:10px;margin-top:4px">' +
           '<div data-action="cancel-rest" style="flex:1;height:44px;border-radius:6px;background:transparent;border:1px solid rgba(var(--border-tint),0.34);color:var(--text-label);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Annuler</div>' +
           '<div data-action="confirm-rest" style="flex:1;height:44px;border-radius:6px;background:var(--ink-bright);border:none;color:var(--ink-dark);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Valider</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderDisableLevelModal() {
+    var level = ui.disableLevelDialog.level;
+    return '<div id="disableLevelOverlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;box-sizing:border-box">' +
+      '<div style="width:100%;max-width:300px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.3);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">' +
+        '<div style="font-size:17px;font-weight:700;color:var(--text-gold)" class="font-cinzel">Désactiver le niveau ' + level + '</div>' +
+        '<div style="font-size:13px;color:var(--text-desc);line-height:1.4">Les niveaux ' + level + ' et supérieurs actuellement actifs seront tous désactivés. Continuer ?</div>' +
+        '<div style="display:flex;gap:10px;margin-top:4px">' +
+          '<div data-action="cancel-disable-level" style="flex:1;height:44px;border-radius:6px;background:transparent;border:1px solid rgba(var(--border-tint),0.34);color:var(--text-label);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Annuler</div>' +
+          '<div data-action="confirm-disable-level" style="flex:1;height:44px;border-radius:6px;background:#ef4444;border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">Désactiver</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -754,6 +817,36 @@
         render();
       });
     });
+
+    var grimoireSwipe = document.getElementById('grimoireSwipe');
+    if (grimoireSwipe) {
+      var touchStartX = 0, touchStartY = 0, touchActive = false;
+      grimoireSwipe.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchActive = true;
+      }, { passive: true });
+      grimoireSwipe.addEventListener('touchend', function (e) {
+        if (!touchActive) return;
+        touchActive = false;
+        var touch = e.changedTouches[0];
+        var dx = touch.clientX - touchStartX;
+        var dy = touch.clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          grimoireStep(dx > 0 ? 1 : -1);
+        }
+      }, { passive: true });
+    }
+  }
+
+  function grimoireStep(delta) {
+    var tabs = grimoireTabs();
+    var idx = tabs.indexOf(ui.grimoireTab);
+    if (idx === -1) idx = 0;
+    idx = clamp(idx + delta, 0, tabs.length - 1);
+    ui.grimoireTab = tabs[idx];
+    render();
   }
 
   function onAction(e) {
@@ -788,9 +881,47 @@
 
       case 'toggle-level': {
         var lvl = parseInt(e.currentTarget.getAttribute('data-level'), 10);
-        var sl = profile().spellLevels.find(function (x) { return x.level === lvl; });
-        sl.enabled = !sl.enabled;
+        var levels = profile().spellLevels;
+        var sl = levels.find(function (x) { return x.level === lvl; });
+        if (!sl.enabled) {
+          var lowerLevelsEnabled = levels.filter(function (x) { return x.level < lvl; }).every(function (x) { return x.enabled; });
+          if (!lowerLevelsEnabled) {
+            ui.settingsLevelError = 'Activez d\'abord les niveaux inférieurs.';
+            render();
+            break;
+          }
+          sl.enabled = true;
+          ui.settingsLevelError = '';
+          saveState(); render();
+        } else {
+          var higherLevelsEnabled = levels.some(function (x) { return x.level > lvl && x.enabled; });
+          if (higherLevelsEnabled) {
+            ui.disableLevelDialog = { level: lvl };
+            render();
+          } else {
+            sl.enabled = false;
+            saveState(); render();
+          }
+        }
+        break;
+      }
+      case 'cancel-disable-level':
+        ui.disableLevelDialog = null;
+        render();
+        break;
+      case 'confirm-disable-level': {
+        var disableFrom = ui.disableLevelDialog.level;
+        profile().spellLevels.forEach(function (x) {
+          if (x.level >= disableFrom) x.enabled = false;
+        });
+        ui.disableLevelDialog = null;
         saveState(); render();
+        break;
+      }
+      case 'grimoire-tab': {
+        var tabValue = e.currentTarget.getAttribute('data-tab');
+        ui.grimoireTab = tabValue === 'classe' ? 'classe' : parseInt(tabValue, 10);
+        render();
         break;
       }
       case 'toggle-class-enabled': {
