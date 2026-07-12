@@ -151,6 +151,12 @@
     return scores;
   }
 
+  function makeSavingThrows() {
+    var throws = {};
+    ABILITY_KEYS.forEach(function (k) { throws[k] = 0; });
+    return throws;
+  }
+
   function makeSkills() {
     return SKILL_NAMES.map(function (name) { return { name: name, modifier: 0 }; });
   }
@@ -173,6 +179,7 @@
       concentration: false,
       inspiration: false,
       abilityScores: makeAbilityScores(),
+      savingThrows: makeSavingThrows(),
       skills: makeSkills()
     };
   }
@@ -185,6 +192,10 @@
     if (!p.abilityScores || typeof p.abilityScores !== 'object') p.abilityScores = makeAbilityScores();
     ABILITY_KEYS.forEach(function (k) {
       if (typeof p.abilityScores[k] !== 'number' || isNaN(p.abilityScores[k])) p.abilityScores[k] = 0;
+    });
+    if (!p.savingThrows || typeof p.savingThrows !== 'object') p.savingThrows = makeSavingThrows();
+    ABILITY_KEYS.forEach(function (k) {
+      if (typeof p.savingThrows[k] !== 'number' || isNaN(p.savingThrows[k])) p.savingThrows[k] = 0;
     });
     if (!Array.isArray(p.skills) || p.skills.length !== SKILL_NAMES.length) {
       p.skills = makeSkills();
@@ -561,6 +572,13 @@
         '</div>';
     }).join('');
 
+    var savingThrowsHtml = ABILITY_KEYS.map(function (key) {
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.2);border-radius:10px;padding:10px 6px">' +
+        '<div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">Sauv. ' + ABILITY_LABELS[key] + '</div>' +
+        '<div style="font-size:19px;font-weight:700;color:var(--text-gold)" class="font-cinzel">' + formatSigned(p.savingThrows[key]) + '</div>' +
+        '</div>';
+    }).join('');
+
     var skillsHtml = filteredSkills.length
       ? filteredSkills.map(function (s, i) {
           return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:' + (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)') + ';border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
@@ -572,9 +590,13 @@
 
     return (
       '<div style="display:flex;flex-direction:column;height:100%;gap:14px">' +
+        '<input id="statsSearchInput" type="text" value="' + escapeHtml(search) + '" placeholder="Rechercher une compétence…" style="flex:none;height:52px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);border-radius:10px;color:var(--text-main);font-size:16px;padding:0 16px;box-sizing:border-box"/>' +
         '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px;flex:none" class="font-cinzel">Personnage</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:none">' + abilitiesHtml + '</div>' +
-        '<input id="statsSearchInput" type="text" value="' + escapeHtml(search) + '" placeholder="Rechercher une compétence…" style="flex:none;height:52px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);border-radius:10px;color:var(--text-main);font-size:16px;padding:0 16px;box-sizing:border-box"/>' +
+        '<div style="flex:none">' +
+          '<div style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Jets de sauvegarde</div>' +
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + savingThrowsHtml + '</div>' +
+        '</div>' +
         '<div data-scroll-root style="flex:1;min-height:0;overflow-y:auto;border-radius:12px;border:1px solid rgba(var(--border-tint),0.2)">' + skillsHtml + '</div>' +
       '</div>'
     );
@@ -768,6 +790,18 @@
         '</div>' +
 
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
+          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Jets de sauvegarde</label>' +
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;background:var(--bg-card);border-radius:12px;border:1px solid rgba(var(--border-tint),0.2)">' +
+            ABILITY_KEYS.map(function (key) {
+              return '<div style="display:flex;flex-direction:column;gap:4px;min-width:0">' +
+                '<label style="font-size:11px;color:var(--text-muted);text-align:center">Sauv. ' + ABILITY_LABELS[key] + '</label>' +
+                '<input type="text" inputmode="text" pattern="-?[0-9]*" data-action="saving-throw-input" data-key="' + key + '" value="' + formatSigned(p.savingThrows[key]) + '" style="width:100%;height:44px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:15px;text-align:center;box-sizing:border-box"/>' +
+                '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>' +
+
+        '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
           '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Compétences</label>' +
           '<div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2)">' +
             p.skills.map(function (s, idx) {
@@ -943,6 +977,16 @@
         var key = el.getAttribute('data-key');
         var scores = profile().abilityScores;
         scores[key] = clamp(toInt(el.value, scores[key]), -99, 99);
+        saveState();
+        render();
+      });
+    });
+
+    app.querySelectorAll('[data-action="saving-throw-input"]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        var key = el.getAttribute('data-key');
+        var throws = profile().savingThrows;
+        throws[key] = clamp(toInt(el.value, throws[key]), -99, 99);
         saveState();
         render();
       });
@@ -1248,6 +1292,12 @@
       if (typeof data.abilityScores !== 'object' || !data.abilityScores) return false;
       for (var a = 0; a < ABILITY_KEYS.length; a++) {
         if (typeof data.abilityScores[ABILITY_KEYS[a]] !== 'number') return false;
+      }
+    }
+    if (data.savingThrows !== undefined) {
+      if (typeof data.savingThrows !== 'object' || !data.savingThrows) return false;
+      for (var st = 0; st < ABILITY_KEYS.length; st++) {
+        if (typeof data.savingThrows[ABILITY_KEYS[st]] !== 'number') return false;
       }
     }
     if (data.skills !== undefined) {
