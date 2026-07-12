@@ -28,9 +28,9 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
   Voir `ui.view` pour la page courante.
 - `render()` : dispatch vers `renderTracker()` / `renderStats()` / `renderGrimoire()` /
   `renderSettings()` (menu Paramètres) / `renderSettingsCharacter()` / `renderSettingsGrimoire()` /
-  `renderSettingsApp()` selon `ui.view`, puis ajoute `renderBottomNav()`. Chaque page occupe toute
-  la hauteur disponible (`height:100%`, pas de scroll de la page globale — seuls les conteneurs
-  `[data-scroll-root]` scrollent en interne).
+  `renderSettingsApp()` / `renderSpellSelection()` selon `ui.view`, puis ajoute `renderBottomNav()`.
+  Chaque page occupe toute la hauteur disponible (`height:100%`, pas de scroll de la page globale —
+  seuls les conteneurs `[data-scroll-root]` scrollent en interne).
 - `bindEvents()` : re-attache tous les event listeners après chaque re-render (délégation via
   `data-action` sur les éléments cliquables).
 
@@ -59,6 +59,25 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    personnage Calix Noctavel — pas d'UI d'édition. Une gestion générique (CRUD depuis
    Paramètres, multi-personnage) reste à faire si besoin ; voir `specifications_jdr_mobile_v2.md`
    section 7.3 pour la spec d'origine.
+   **Mode Paladin** (`profile.paladinMode`, toggle dans Paramétrer le Grimoire) : quand actif,
+   `activeSpellbook()` bascule tout l'onglet Grimoire sur la constante `PALADIN_SPELLBOOK`
+   (sorts + capacités de Deneor, Serment des Anciens, transcrits depuis
+   `Paladin_Serment_des_Anciens.pdf`) à la place de `SPELLBOOK` (Calix). Les deux constantes
+   partagent le même schéma `{ sections: [{ title, levelTag, level, spells: [{ name, type,
+   range, desc, note }] }] }` — plusieurs sections peuvent partager le même `level` (ex. niveau 1
+   de `PALADIN_SPELLBOOK` a une section "Sorts de serment" et une section "Sorts de Paladin").
+   En mode Paladin, l'onglet Grimoire n'affiche, pour les niveaux de sorts, que les sorts cochés
+   dans l'écran "Sélection de sorts" (`profile.paladinSelectedSpells`, map nom de sort → booléen,
+   accessible depuis Paramétrer le Grimoire quand le mode est actif) — ce n'est donc pas un simple
+   aide-mémoire complet comme pour Calix, mais un filtre sur les sorts "préparés". Les sections de
+   niveau `'classe'` (capacités de classe Paladin + capacités du Serment des Anciens) échappent à
+   ce filtre : toujours affichées en entier, indépendamment de toute sélection — voir
+   `renderGrimoireSection()`/`renderGrimoire()` (paramètre `selectionCtx`, `locked = section.level
+   === 'classe'`) et `renderSpellSelection()` pour l'écran de sélection lui-même (même pagination
+   par onglets/niveaux que le Grimoire, compteur "Sort : x" dans l'en-tête via
+   `paladinSpellSelectionCount()` qui exclut les entrées `level === 'classe'` du total). Basculer
+   le mode ne supprime jamais `paladinSelectedSpells` : les sélections sont conservées si
+   l'utilisateur redésactive puis réactive le mode.
    Pagination par onglets sous le titre "Grimoire" : un onglet par niveau de sort de 0 à
    `maxEnabledSpellLevel()` (le plus haut niveau d'emplacement activé dans Paramètres), plus un
    onglet "Classe" en dernière position pour la section "Capacités de classe et dons" (non liée
@@ -110,9 +129,28 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
      et à l'import JSON — les deux formats sont acceptés par `isValidProfile()` pour la
      rétrocompatibilité des sauvegardes exportées avant ce changement.
    - **Paramétrer le Grimoire** (`renderSettingsGrimoire()`) — le contenu du personnage Calix
-     (`SPELLBOOK`) reste inchangé et non éditable ici. Contient uniquement un emplacement UI
-     réservé pour un futur sélecteur de mode de lancer de sorts (connus / préparés) — la logique
-     de préparation elle-même n'est pas développée, voir "Reste à faire" plus bas.
+     (`SPELLBOOK`) reste inchangé et non éditable ici. Toggle « Mode Paladin »
+     (`data-action="toggle-paladin-mode"`, défaut désactivé) qui bascule le Grimoire vers
+     `PALADIN_SPELLBOOK` (voir section Grimoire plus haut). En dessous, bouton "Sélectionner des
+     sorts" (`data-action="nav" data-view="settings-select-spells"`) grisé/non cliquable
+     (`pointer-events:none`) tant que le Mode Paladin est désactivé ; `renderPage()` renvoie aussi
+     défensivement vers `settings-grimoire` si `ui.view === 'settings-select-spells'` alors que
+     `profile().paladinMode` est faux (garde-fou si l'état redevient incohérent). Contient
+     également un emplacement UI réservé pour un futur sélecteur de mode de lancer de sorts
+     (connus / préparés) pour Calix — la logique de préparation elle-même n'est pas développée,
+     voir "Reste à faire" plus bas.
+   - **Sélection de sorts** (`renderSpellSelection()`, `view: 'settings-select-spells'`, atteignable
+     uniquement depuis Paramétrer le Grimoire en Mode Paladin) — reproduit la pagination par
+     onglets/niveaux et les filtres de type du Grimoire, mais sur `PALADIN_SPELLBOOK` uniquement et
+     avec état de pagination propre (`ui.spellSelectionTab`/`ui.spellSelectionAnimDirection`,
+     distincts de `ui.grimoireTab`/`ui.grimoireAnimDirection` ; navigation par tap
+     `data-action="spell-selection-tab"` ou swipe sur `#spellSelectionSwipe`, via l'aide générique
+     `bindSwipeNav()` partagée avec `#grimoireSwipe`). Taper sur un sort
+     (`data-action="toggle-spell-selection"`) bascule sa présence dans
+     `profile.paladinSelectedSpells` ; les sorts sélectionnés sont mis en valeur (bordure gauche +
+     coche). Les entrées des sections `level === 'classe'` apparaissent toujours cochées et ne sont
+     pas cliquables (toujours préparées, comme les capacités passives) et n'entrent pas dans le
+     compteur "Sort : x" affiché à droite du titre.
    - **Paramétrer l'application** (`renderSettingsApp()`, volontairement pas nommée "profil" —
      ce terme désigne déjà le personnage, `state.profile`/`state.profiles[]`) — toggle « Activer
      le thème sombre » et rubrique "Sauvegarde" (export/import JSON), dans cet ordre — voir
@@ -155,7 +193,7 @@ Le `<meta name="theme-color">` initial dans `<head>` et `background_color`/`them
 ## Service Worker (`sw.js`)
 
 Stratégie réseau d'abord avec fallback cache (pas de stale-while-revalidate). `CACHE_NAME` est
-versionné (`cantrip-v30` au 2026-07-12) — **incrémenter cette constante à chaque changement
+versionné (`cantrip-v31` au 2026-07-12) — **incrémenter cette constante à chaque changement
 significatif des assets statiques** (`index.html`, `manifest.json`, `icon.svg`) pour forcer
 l'invalidation du cache côté client.
 
