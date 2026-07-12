@@ -141,10 +141,13 @@ l'invalidation du cache côté client.
 ## Déploiement
 
 - Dépôt : https://github.com/Nerdash/cantrip (public, compte GitHub "Nerdash")
-- App en ligne (GitHub Pages, HTTPS, installable en PWA) : https://nerdash.github.io/cantrip/
-- Déploiement automatique : push sur `master` → GitHub Pages sert directement `index.html` à la
-  racine (pas de pipeline CI, pas de dossier `dist`).
-- `.nojekyll` présent pour désactiver le traitement Jekyll par GitHub Pages.
+- **Prod** (GitHub Pages, HTTPS, installable en PWA) : https://nerdash.github.io/cantrip/ —
+  déploiement automatique à chaque push sur `master`, qui sert directement `index.html` à la
+  racine (pas de pipeline CI, pas de dossier `dist`). `.nojekyll` présent pour désactiver le
+  traitement Jekyll.
+- **Preprod** (Netlify) : https://ben-cantrip.netlify.app/ — déploiement automatique à chaque
+  push sur `preprod`, configuré depuis le dashboard Netlify (pas de `netlify.toml` dans le
+  dépôt).
 
 ## Git — spécifique à cette machine, à reconfigurer sur toute nouvelle installation
 
