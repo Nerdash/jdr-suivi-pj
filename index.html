@@ -290,15 +290,33 @@
   }
 
   // ---- SVG icons ----
-  var ICON_GEAR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>';
+  function iconGear(filled) {
+    var gearPath = '<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>';
+    if (!filled) {
+      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/>' + gearPath + '</svg>';
+    }
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g fill="currentColor">' + gearPath + '</g><circle cx="12" cy="12" r="3" fill="var(--bg-nav)" stroke="none"/></svg>';
+  }
   var ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="var(--ink-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_CONCENTRATION = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.3l2.8 1.7"/><path d="M16.5 9.3l-2.8 1.7"/><circle cx="8.6" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="15.4" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><path d="M9 16.8h6"/></svg>';
   function iconStar(filled) {
     return '<svg width="22" height="22" viewBox="0 0 24 24" fill="' + (filled ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
   }
-  var ICON_TRACKER = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4c2-.3 3.7.7 4.9 2.3C11.7 4.7 13.4 3.7 15.4 4 19 4.5 20.5 8 19 11.7 16.5 16.4 12 21 12 21z"/></svg>';
-  var ICON_STATS = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>';
-  var ICON_BOOK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/></svg>';
+  function iconTracker(filled) {
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (filled ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.6 4c2-.3 3.7.7 4.9 2.3C11.7 4.7 13.4 3.7 15.4 4 19 4.5 20.5 8 19 11.7 16.5 16.4 12 21 12 21z"/></svg>';
+  }
+  function iconStats(filled) {
+    if (!filled) {
+      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>';
+    }
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2.7" y="10" width="2.6" height="10" rx="1.3" fill="currentColor"/><rect x="9.7" y="4" width="2.6" height="16" rx="1.3" fill="currentColor"/><rect x="16.7" y="13" width="2.6" height="7" rx="1.3" fill="currentColor"/></svg>';
+  }
+  function iconBook(filled) {
+    if (!filled) {
+      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/></svg>';
+    }
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" fill="currentColor"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="var(--bg-nav)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
   function iconResized(svg, size) {
     return svg.replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"');
   }
@@ -388,10 +406,10 @@
   var app = document.getElementById('app');
 
   var PAGES = [
-    { view: 'tracker', label: 'Suivi', icon: ICON_TRACKER },
-    { view: 'stats', label: 'Stats', icon: ICON_STATS },
-    { view: 'grimoire', label: 'Grimoire', icon: ICON_BOOK },
-    { view: 'settings', label: 'Paramètres', icon: ICON_GEAR }
+    { view: 'tracker', label: 'Suivi', icon: iconTracker },
+    { view: 'stats', label: 'Stats', icon: iconStats },
+    { view: 'grimoire', label: 'Grimoire', icon: iconBook },
+    { view: 'settings', label: 'Paramètres', icon: iconGear }
   ];
 
   function renderPage() {
@@ -407,7 +425,7 @@
     var itemsHtml = PAGES.map(function (page) {
       var active = ui.view === page.view;
       return '<div data-action="nav" data-view="' + page.view + '" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;cursor:pointer;color:' + (active ? 'var(--text-gold)' : 'var(--text-dim)') + '">' +
-        page.icon +
+        page.icon(active) +
         '<div style="font-size:10px;font-weight:600;letter-spacing:0.02em">' + page.label + '</div>' +
         '</div>';
     }).join('');

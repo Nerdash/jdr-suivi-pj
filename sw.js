@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cantrip-v20';
+const CACHE_NAME = 'cantrip-v21';
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
