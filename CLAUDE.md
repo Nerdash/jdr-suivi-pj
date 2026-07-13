@@ -93,11 +93,12 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    Une page dédiée `renderGrimoirePrepare()` (`view: 'grimoire-prepare'`) permet de choisir les
    sorts préparés, sans plafond imposé : elle réutilise les mêmes onglets de niveau
    (`grimoireTabs()`/`ui.grimoireTab`/`grimoireStep()`, y compris le swipe, `#grimoireSwipe`
-   partagé puisque les deux pages ne sont jamais montées en même temps) mais affiche tous les
-   sorts du niveau (pas seulement ceux préparés), rendus par `renderGrimoireSection(section,
-   spells, true)` : les sorts `alwaysAvailable` portent un badge "Toujours disponible" et ne sont
-   pas cliquables, les autres togglent leur présence dans `preparedSpells` au tap
-   (`data-action="toggle-prepared-spell"`) avec une mise en évidence (bordure + fond teinté). Un
+   partagé puisque les deux pages ne sont jamais montées en même temps) mais affiche, pour
+   chaque niveau, uniquement les sorts préparables (`!spell.alwaysAvailable`) — les sorts de
+   serment toujours disponibles n'apparaissent que dans le Grimoire normal, jamais sur cette page.
+   Rendus par `renderGrimoireSection(section, spells, true)`, chaque sort toggle sa présence dans
+   `preparedSpells` au tap (`data-action="toggle-prepared-spell"`) avec une mise en évidence
+   (bordure + fond teinté). Un
    compteur mis en valeur (fond plein) affiche `preparedSpells.length` en haut à droite de
    l'en-tête. Filtres dédiés `PREPARE_FILTERS` (état `ui.prepareFilters`, éphémère) : Action /
    Bonus / **Classe** — remplace Réaction (aucun sort de ce type chez Deneor) ; le chip Classe

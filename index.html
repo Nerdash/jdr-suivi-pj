@@ -938,16 +938,14 @@
 
   function renderGrimoireSection(section, spells, prepareMode) {
     var rowsHtml = spells.map(function (spell, i) {
-      var alwaysAvailable = prepareMode && spell.alwaysAvailable;
-      var prepared = prepareMode && !spell.alwaysAvailable && profile().preparedSpells.indexOf(spell.name) !== -1;
-      var clickable = prepareMode && !spell.alwaysAvailable;
+      var prepared = !!prepareMode && profile().preparedSpells.indexOf(spell.name) !== -1;
+      var clickable = !!prepareMode;
       return '<div ' + (clickable ? 'data-action="toggle-prepared-spell" data-name="' + escapeHtml(spell.name) + '"' : '') +
         ' style="padding:11px 14px;background:' + (prepared ? 'rgba(var(--border-tint),0.16)' : (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)')) + ';border-bottom:1px solid rgba(var(--border-tint),0.14);' + (clickable ? 'cursor:pointer;' : '') + (prepared ? 'border-left:3px solid var(--border-strong);' : '') + '">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
           '<div style="font-size:14px;font-weight:700;color:var(--text-main);font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
           '<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
             '<div style="display:flex;align-items:center;gap:5px">' +
-              (alwaysAvailable ? '<div style="font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-gold);background:rgba(var(--border-tint),0.18);border:1px solid rgba(var(--border-tint),0.4);padding:2px 7px;border-radius:8px;white-space:nowrap">Toujours disponible</div>' : '') +
               '<div style="background:rgba(var(--border-tint),0.12);border:1px solid rgba(var(--border-tint),0.32);color:var(--text-chip);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + escapeHtml(section.levelTag) + '</div>' +
               '<div style="' + spellBadgeStyle(spell.type) + 'padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap">' + escapeHtml(spell.type) + '</div>' +
             '</div>' +
@@ -1042,10 +1040,13 @@
     }).join('');
 
     var matchingSections = DENEOR_SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
-    var sectionsWithSpells = matchingSections.map(function (s) {
+    var preparableSections = matchingSections.map(function (s) {
+      return { title: s.title, levelTag: s.levelTag, level: s.level, spells: s.spells.filter(function (spell) { return !spell.alwaysAvailable; }) };
+    });
+    var sectionsWithSpells = preparableSections.map(function (s) {
       return { section: s, spells: s.spells.filter(spellMatchesPrepareTypeFilters) };
     }).filter(function (x) { return x.spells.length > 0; });
-    var totalSpellsAtLevel = matchingSections.reduce(function (sum, s) { return sum + s.spells.length; }, 0);
+    var totalSpellsAtLevel = preparableSections.reduce(function (sum, s) { return sum + s.spells.length; }, 0);
 
     var contentHtml;
     if (sectionsWithSpells.length) {
