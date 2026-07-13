@@ -59,10 +59,13 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
 3. **Grimoire** — affiche les capacités du personnage (sorts par niveau + capacités de classe et
    dons), regroupées par section avec badge de type d'action coloré (Action/Bonus/Réaction/
    Rituel/Passif...), niveau, portée/durée et note d'usage en italique. Contenu **statique,
-   codé en dur** dans la constante `SPELLBOOK` (`index.html`, pas dans `state`) pour le
-   personnage Calix Noctavel — pas d'UI d'édition. Une gestion générique (CRUD depuis
-   Paramètres, multi-personnage) reste à faire si besoin ; voir `specifications_jdr_mobile_v2.md`
+   codé en dur** dans `index.html` (pas dans `state`), une constante par personnage —
+   `SPELLBOOK` pour Calix Noctavel, `DENEOR_SPELLBOOK` pour Deneor Sentariel — sélectionnée via
+   `activeSpellbook()` selon `state.activeCharacterId`. Pas d'UI d'édition du contenu lui-même
+   (CRUD depuis Paramètres, multi-personnage générique) ; voir `specifications_jdr_mobile_v2.md`
    section 7.3 pour la spec d'origine.
+   **Grimoire de Deneor (Paladin, Serment des Anciens)** : système de préparation de sorts
+   quotidienne, voir sous-section dédiée plus bas.
    Pagination par onglets sous le titre "Grimoire" : un onglet par niveau de sort de 0 à
    `maxEnabledSpellLevel()` (le plus haut niveau d'emplacement activé dans Paramètres), plus un
    onglet "Classe" en dernière position pour la section "Capacités de classe et dons" (non liée
@@ -80,6 +83,34 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    filtres actifs se combinent en OR (`spellMatchesGrimoireFilters()`) ; aucun filtre actif =
    tout afficher. L'état (`ui.grimoireFilters`, éphémère) est conservé en changeant d'onglet de
    niveau puisqu'il n'est jamais réinitialisé par `renderGrimoire()`/`grimoireStep()`.
+
+   **Préparation de sorts (Deneor uniquement)** — contrairement à Calix, le Grimoire de Deneor
+   n'affiche pas tout `DENEOR_SPELLBOOK` en lecture seule : dans `renderGrimoire()`, les sections
+   autres que `classe` sont filtrées aux sorts ayant `alwaysAvailable: true` (sorts de serment,
+   toujours disponibles) ou présents dans `profile().preparedSpells` (tableau de noms de sorts,
+   persistant, migré par `sanitizeProfile()`) ; la section `classe` (capacités de classe, de
+   serment, et la card `SERMENT` de résumé des préceptes) reste toujours affichée en entier.
+   Une page dédiée `renderGrimoirePrepare()` (`view: 'grimoire-prepare'`) permet de choisir les
+   sorts préparés, sans plafond imposé : elle réutilise les mêmes onglets de niveau
+   (`grimoireTabs()`/`ui.grimoireTab`/`grimoireStep()`, y compris le swipe, `#grimoireSwipe`
+   partagé puisque les deux pages ne sont jamais montées en même temps) mais affiche tous les
+   sorts du niveau (pas seulement ceux préparés), rendus par `renderGrimoireSection(section,
+   spells, true)` : les sorts `alwaysAvailable` portent un badge "Toujours disponible" et ne sont
+   pas cliquables, les autres togglent leur présence dans `preparedSpells` au tap
+   (`data-action="toggle-prepared-spell"`) avec une mise en évidence (bordure + fond teinté). Un
+   compteur mis en valeur (fond plein) affiche `preparedSpells.length` en haut à droite de
+   l'en-tête. Filtres dédiés `PREPARE_FILTERS` (état `ui.prepareFilters`, éphémère) : Action /
+   Bonus / **Classe** — remplace Réaction (aucun sort de ce type chez Deneor) ; le chip Classe
+   révèle la section `classe` (lecture seule) sous l'onglet de niveau courant sans en changer
+   (no-op si on est déjà sur l'onglet Classe).
+   Trois points d'entrée vers cette page, chacun fixant `ui.grimoirePrepareBackView` pour que le
+   bouton retour revienne au bon endroit : le bouton flottant `#grimoirePrepareFab` en bas du
+   Grimoire (visible seulement en haut de la liste, listener de scroll sur `#grimoireSwipe` dans
+   `bindEvents()` qui bascule directement `style.opacity`/`pointerEvents` sans `render()`), le
+   bouton "Préparer mes sorts" de `renderSettingsGrimoire()` (qui bascule aussi sur son contenu
+   Deneor selon `state.activeCharacterId`), et le bouton "Se reposer et préparer des sorts" de la
+   modale Repos (Deneor uniquement, `confirmRestAndPrepare()` — factorisé avec `confirmRest()` via
+   `applyRestChecks()` commun).
 4. **Paramètres** — depuis juillet 2026, `renderSettings()` n'affiche plus qu'un menu de trois
    boutons (`data-action="nav"`, réutilise le pattern générique de navigation) qui renvoient
    chacun vers une sous-page dédiée. Chaque sous-page a son propre `view` (`settings-character` /
@@ -113,10 +144,11 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
      (`profile.classResource: { enabled, label, max, used }`) vers `classResources` — appliqué à
      chaque chargement, aussi bien au profil actif (`state.profiles[]`) qu'aux instantanés
      `savedProfile` de chaque personnage (voir section Personnages ci-dessous).
-   - **Paramétrer le Grimoire** (`renderSettingsGrimoire()`) — le contenu du personnage Calix
-     (`SPELLBOOK`) reste inchangé et non éditable ici. Contient uniquement un emplacement UI
-     réservé pour un futur sélecteur de mode de lancer de sorts (connus / préparés) — la logique
-     de préparation elle-même n'est pas développée, voir "Reste à faire" plus bas.
+   - **Paramétrer le Grimoire** (`renderSettingsGrimoire()`) — branché sur
+     `state.activeCharacterId` : pour Calix, contenu inchangé et non éditable (`SPELLBOOK` fixe,
+     emplacement UI "à venir" pour un futur sélecteur connus/préparés côté Calix — non développé).
+     Pour Deneor, affiche un résumé du système de préparation et un bouton "Préparer mes sorts"
+     vers `renderGrimoirePrepare()` (voir section Grimoire plus haut).
    - **Paramétrer l'application** (`renderSettingsApp()`, volontairement pas nommée "profil" —
      ce terme désigne déjà le personnage, `state.profile`/`state.profiles[]`) — ne contient plus
      qu'une rubrique "Sauvegarde" avec un bouton "Charger un personnage" (`data-action="nav"
@@ -188,9 +220,9 @@ Le profil réellement affiché/édité dans toute l'app reste `state.profiles[st
     changement sans repasser par "Charger ce personnage". En cas de JSON invalide, message d'erreur
     transitoire (`ui.characterImportError`, même durée de vie que `ui.characterNotice`) sans toucher
     à l'état existant.
-  Tant que le contenu du Grimoire reste codé en dur dans `SPELLBOOK` (Calix uniquement, voir
-  section Grimoire plus haut), charger Deneor ne change pas l'onglet Grimoire — sa gestion propre
-  reste à faire (voir "Reste à faire" plus bas).
+  Le Grimoire affiché dépend de `state.activeCharacterId` (`activeSpellbook()`, voir section
+  Grimoire plus haut) : charger Deneor bascule sur `DENEOR_SPELLBOOK` et son système de
+  préparation de sorts, indépendant du contenu de Calix.
 
 `loadState()` migre automatiquement toute sauvegarde antérieure à ce système (`parsed.characters`
 absent) : le profil unique existant devient l'instantané de Calix (aucune perte de données) et
@@ -268,8 +300,9 @@ toute nouvelle machine avant de committer.
 
 ## Reste à faire / pistes non traitées
 
-- Grimoire de Deneor : contenu encore non implémenté (`SPELLBOOK` reste toujours celui de Calix,
-  quel que soit le personnage chargé) — voir section Grimoire et section Personnages plus haut.
+- Sélecteur connus/préparés pour le Grimoire de Calix : emplacement UI réservé dans
+  `renderSettingsGrimoire()` mais logique non développée (Deneor a son propre système de
+  préparation de sorts, voir section Grimoire plus haut — indépendant de celui-ci).
 - Personnages : système actuellement limité à deux emplacements fixes (Calix/Deneor), pas de CRUD
   générique (ajout/suppression d'un personnage) — voir section Personnages plus haut.
 - Génération d'un `.apk` installable : voie recommandée — passer l'URL GitHub Pages dans

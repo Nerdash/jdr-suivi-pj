@@ -194,7 +194,8 @@
       inspiration: false,
       abilityScores: makeAbilityScores(),
       savingThrows: makeSavingThrows(),
-      skills: makeSkills()
+      skills: makeSkills(),
+      preparedSpells: []
     };
   }
 
@@ -261,6 +262,8 @@
       cr.max = Math.max(0, Math.min(20, cr.max));
       cr.used = resizeUsedArray(cr.used, cr.max);
     });
+    if (!Array.isArray(p.preparedSpells)) p.preparedSpells = [];
+    else p.preparedSpells = p.preparedSpells.filter(function (n) { return typeof n === 'string'; });
     return p;
   }
 
@@ -354,6 +357,10 @@
         { name: 'Représentation', modifier: 3 },
         { name: 'Survie', modifier: 4 },
         { name: 'Tromperie', modifier: 3 }
+      ],
+      preparedSpells: [
+        'Bouclier de la foi', 'Cérémonie', 'Châtiment calcinant', 'Châtiment courroucé',
+        'Châtiment tonitruant', 'Détection de la magie', 'Détection du mal et du bien'
       ]
     });
   }
@@ -445,15 +452,17 @@
 
   // ---- ephemeral UI state (not persisted) ----
   var ui = {
-    view: 'tracker', // 'tracker' | 'stats' | 'grimoire' | 'settings' | 'settings-character' | 'settings-grimoire' | 'settings-app' | 'settings-load-character'
+    view: 'tracker', // 'tracker' | 'stats' | 'grimoire' | 'grimoire-prepare' | 'settings' | 'settings-character' | 'settings-grimoire' | 'settings-app' | 'settings-load-character'
     editingMax: false,
     editingTemp: false,
     shortRestOpen: false,
     shortRestChecks: { hp: false, spells: false, tempHp: false, classResource: false },
     statsSearch: '',
     grimoireTab: 0, // niveau numérique (0..9) ou 'classe'
-    grimoireAnimDirection: null, // 'next' | 'prev' | null — consommé une fois par renderGrimoire()
+    grimoireAnimDirection: null, // 'next' | 'prev' | null — consommé une fois par renderGrimoire()/renderGrimoirePrepare()
     grimoireFilters: { action: false, bonus: false, reaction: false }, // conservés entre les onglets de niveau
+    prepareFilters: { action: false, bonus: false, classe: false }, // filtres propres à la page "Préparation de sorts" (Deneor)
+    grimoirePrepareBackView: 'grimoire', // vue vers laquelle revenir depuis "Préparation de sorts"
     settingsLevelError: '',
     disableLevelDialog: null, // { level: number } quand la confirmation de désactivation est ouverte
     characterCarouselIndex: 0, // index dans CHARACTER_ORDER, propre à l'écran "Charger un personnage"
@@ -491,7 +500,7 @@
     }
     return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g fill="currentColor">' + gearPath + '</g><circle cx="12" cy="12" r="3" fill="var(--bg-nav)" stroke="none"/></svg>';
   }
-  var ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="var(--ink-dark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="var(--ink-bright)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_CONCENTRATION = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.3l2.8 1.7"/><path d="M16.5 9.3l-2.8 1.7"/><circle cx="8.6" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="15.4" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><path d="M9 16.8h6"/></svg>';
   function iconStar(filled) {
     return '<svg width="22" height="22" viewBox="0 0 24 24" fill="' + (filled ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
@@ -592,6 +601,80 @@
     ]
   };
 
+  // ---- grimoire (Deneor Sentariel — Paladin, Serment des Anciens) ----
+  // alwaysAvailable: sort de serment, jamais dans la liste préparable (voir renderGrimoireSection / renderGrimoire).
+  var DENEOR_SPELLBOOK = {
+    sections: [
+      {
+        title: "Niveau 1",
+        levelTag: "Niv. 1",
+        level: 1,
+        spells: [
+          { name: "Frappe piégeuse", type: "BONUS", range: "Personnel · Conc. 1 min", alwaysAvailable: true, desc: "Prochaine attaque au corps à corps touchée : des lianes épineuses entravent la cible (JS Force, avantage si taille G+) et infligent 1d6 perforant au début de chacun de ses tours.", note: "Sort de serment, toujours préparé. Combine bien avec Châtiment divin sur la même attaque." },
+          { name: "Communication avec les animaux", type: "RITUEL", range: "Personnel · 10 min", alwaysAvailable: true, desc: "Comprend et communique verbalement avec les bêtes pendant la durée ; leurs réponses restent limitées par leur intelligence.", note: "Utile pour interroger un témoin animal ou calmer une monture affolée. Lançable en rituel, sans consommer d'emplacement." },
+          { name: "Bénédiction", type: "ACTION", range: "9m · Conc. 1 min", desc: "Jusqu'à 3 créatures ajoutent 1d4 à leurs jets d'attaque et de sauvegarde pendant la durée.", note: "Excellent avant un affrontement anticipé, peu coûteux en concentration." },
+          { name: "Bouclier de la foi", type: "BONUS", range: "18m · Conc. 10 min", desc: "+2 CA pour une créature choisie à portée.", note: "Bon réflexe de protection rapide sur un allié ou soi-même en début de combat." },
+          { name: "Cérémonie", type: "RITUEL", range: "Contact (cible à 3m)", desc: "Rite religieux au choix : purifie l'eau, restaure un alignement changé, accorde +1d4 aux caractéristiques ou sauvegardes pendant 24h, protège un cadavre de la non-mort, ou +2 CA à des époux pendant 7 jours.", note: "Sort ritualisé et narratif : utile hors combat pour marquer des moments importants ou préparer une bénédiction longue durée." },
+          { name: "Châtiment calcinant", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque au corps à corps touchée : +1d6 feu et la cible brûle (1d6 feu en début de tour, JS Constitution pour éteindre).", note: "Dégâts répartis dans le temps : utile pour maintenir de la pression sans dépenser plusieurs tours." },
+          { name: "Châtiment courroucé", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque au corps à corps touchée : +1d6 psychique et JS Sagesse ou cible effrayée jusqu'à la fin du sort.", note: "Bon choix contre une cible dangereuse à mettre à distance sans la tuer." },
+          { name: "Châtiment tonitruant", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Première attaque au corps à corps touchée : +2d6 tonnerre et JS Force ou la cible est repoussée de 3m et tombe à terre.", note: "Utile pour écarter une cible d'un bord de gouffre ou d'un allié à terre." },
+          { name: "Détection de la magie", type: "RITUEL", range: "Personnel · Conc. 10 min", desc: "Détecte les auras magiques dans un rayon de 9m et permet d'identifier l'école de magie d'un objet ou d'une créature visible.", note: "Bloqué par 30cm de pierre, 2,5cm de métal, une feuille de plomb ou 90cm de bois/terre." },
+          { name: "Détection du mal et du bien", type: "ACTION", range: "Personnel · Conc. 10 min", desc: "Détecte la présence et la localisation des aberrations, célestes, élémentaires, fées, fiélons et morts-vivants dans un rayon de 9m.", note: "Utile en reconnaissance avant d'ouvrir une porte suspecte." },
+          { name: "Détection du poison et des maladies", type: "RITUEL", range: "Personnel · Conc. 10 min", desc: "Détecte poisons, créatures venimeuses et maladies dans un rayon de 9m, avec leur type.", note: "À lancer avant de goûter un aliment suspect ou de fouiller une zone infestée." },
+          { name: "Duel forcé", type: "BONUS", range: "9m · Conc. 1 min", desc: "JS Sagesse ou la cible a désavantage aux attaques contre toute autre créature que le lanceur et est freinée si elle s'éloigne de plus de 9m.", note: "Idéal pour protéger les alliés fragiles en isolant la cible principale. Prend fin si le lanceur attaque quelqu'un d'autre." },
+          { name: "Faveur divine", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Les attaques à l'arme infligent +1d4 dégâts radiants pendant la durée.", note: "Se déclenche à chaque attaque réussie tant que la concentration tient : bon complément passif en combat prolongé." },
+          { name: "Héroïsme", type: "ACTION", range: "Contact · Conc. 1 min", desc: "La cible consentante est immunisée à l'effroi et gagne des PV temporaires = mod. de caractéristique à chaque début de tour.", note: "À poser sur un allié fragile juste avant un combat contre une créature qui inflige la peur." },
+          { name: "Injonction", type: "ACTION", range: "18m", desc: "JS Sagesse ou la cible exécute un mot au prochain tour (Approche / Lâche / Fuis / Tombe / Halte). Sans effet sur les morts-vivants ou si la cible ne comprend pas.", note: "Utile pour désarmer un adversaire ou l'éloigner d'un allié à terre." },
+          { name: "Protection contre le mal et le bien", type: "ACTION", range: "Contact · Conc. 10 min", desc: "La cible consentante bénéficie d'un désavantage imposé aux attaques des aberrations/célestes/élémentaires/fées/fiélons/morts-vivants contre elle, et d'une protection contre la charme/l'effroi/la possession par ces types.", note: "À réserver aux combats identifiés contre ces familles de créatures : inefficace contre humanoïdes et bêtes." },
+          { name: "Purification de nourriture et d'eau", type: "RITUEL", range: "3m", desc: "Purifie toute nourriture et boisson non magique dans une sphère de 1,5m de rayon, retirant poison et maladie.", note: "Réflexe utile en exploration ou en cas de ravitaillement douteux." },
+          { name: "Soins", type: "ACTION", range: "Contact", desc: "Soigne 1d8 + mod. de caractéristique au toucher. Sans effet sur morts-vivants et artificiels.", note: "Nécessite d'être au contact ; prévoir de s'approcher avant de l'utiliser." }
+        ]
+      },
+      {
+        title: "Niveau 2",
+        levelTag: "Niv. 2",
+        level: 2,
+        spells: [
+          { name: "Rayon de lune", type: "ACTION", range: "36m · Conc. 1 min", alwaysAvailable: true, desc: "Colonne de lumière 1,5m de rayon, 12m de haut. JS Constitution ou 2d10 radiants (demi si réussi) à l'entrée ou au début du tour dans la zone. Déplaçable de 18m par action.", note: "Très efficace contre les métamorphes, qui subissent le JS avec désavantage et sont forcés de reprendre forme." },
+          { name: "Foulée brumeuse", type: "BONUS", range: "Personnel", alwaysAvailable: true, desc: "Téléportation instantanée jusqu'à 9m vers un espace libre visible.", note: "Réserver comme dégagement d'urgence ou pour refermer la distance sur un lanceur de sorts ennemi." },
+          { name: "Aide", type: "ACTION", range: "9m", desc: "Jusqu'à 3 créatures gagnent +5 PV max et actuels pendant 8 heures.", note: "À lancer avant un combat difficile plutôt qu'en réaction à des dégâts déjà subis." },
+          { name: "Appel de destrier", type: "10 MIN", range: "9m", desc: "Invoque un esprit sous forme de monture liée (cheval, poney, chameau, élan ou molosse) de type céleste, fée ou fiélon.", note: "Le lien permet une télépathie à 1,5km et de partager certains sorts lancés sur le cavalier. Réinvocable à volonté hors combat." },
+          { name: "Arme magique", type: "BONUS", range: "Contact · Conc. 1h", desc: "Une arme non magique touchée devient +1 aux jets d'attaque et de dégâts. +2 avec un emplacement de niveau 4+, +3 avec un emplacement de niveau 6+.", note: "Surtout utile contre les créatures résistantes aux armes non magiques." },
+          { name: "Châtiment révélateur", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque touchée : +2d6 radiants, la cible devient visible et émet une lumière l'empêchant de redevenir invisible.", note: "Réponse directe à une cible invisible ou susceptible de se dissimuler." },
+          { name: "Localisation d'objet", type: "ACTION", range: "Personnel · Conc. 10 min", desc: "Ressent la direction d'un objet connu (déjà vu de près) ou du plus proche objet d'un type donné, jusqu'à 300m.", note: "Bloqué par une feuille de plomb sur la ligne de mire." },
+          { name: "Protection contre le poison", type: "ACTION", range: "Contact", desc: "Neutralise un poison actif sur la cible ; pour 1h, avantage aux JS contre le poison et résistance aux dégâts de poison.", note: "À garder en réserve pour contrer les effets de statut plutôt que les dégâts bruts." },
+          { name: "Restauration partielle", type: "ACTION", range: "Contact", desc: "Met fin à un des états suivants sur la cible : aveuglement, surdité, paralysie, empoisonnement.", note: "Sort de dépannage rapide en combat, sans nécessiter de repos." },
+          { name: "Zone de vérité", type: "ACTION", range: "18m", desc: "Sphère de 4,5m : JS Charisme ou impossibilité de mentir délibérément dans la zone pendant 10 minutes.", note: "Très utile en interrogatoire, mais la cible reste consciente de l'effet et peut esquiver les questions." }
+        ]
+      },
+      {
+        title: "Capacités de classe et dons",
+        levelTag: "Classe",
+        level: 'classe',
+        spells: [
+          { name: "Serment des Anciens (préceptes)", type: "SERMENT", range: "—", desc: "Entretenir la lumière et repousser les ténèbres où qu'elles s'étendent ; nourrir la vie, la joie et la beauté du monde ; se délecter de l'art, du rire et de la nature ; protéger ce qui est précieux contre la destruction et la corruption.", note: "Préceptes du serment : un repère de roleplay, pas une règle mécanique." },
+          { name: "Sens divin", type: "ACTION", range: "18m", desc: "Détecte la présence de célestes, fiélons ou morts-vivants non cachés pendant 1 round. Utilisations = 1 + mod. Cha.", note: "Recharge à chaque repos long. À utiliser en entrant dans une zone suspecte." },
+          { name: "Imposition des mains", type: "ACTION", range: "Contact", desc: "Réserve de PV = niveau x 5. Restaure des PV au toucher, ou dépense 5 PV pour guérir une maladie ou un poison.", note: "Se recharge intégralement à chaque repos long ; répartir la réserve sur plusieurs cibles si besoin." },
+          { name: "Style de combat", type: "PASSIF", range: "–", desc: "Choix permanent à la création (Défense, Duel, Combat à deux armes...) donnant un bonus passif au combat.", note: "Le choix ne peut plus être changé ensuite : vérifier la cohérence avec l'équipement prévu." },
+          { name: "Châtiment divin", type: "ACTION", range: "Contact", desc: "Dépense un emplacement de sort pour infliger 2d8 dégâts radiants supplémentaires (+1d8/niveau au-delà de 1, max 5d8) sur une attaque au corps à corps réussie. +1d8 si la cible est morte-vivante ou fiélon.", note: "À réserver aux coups importants : consomme un emplacement qui ne sert alors plus à lancer un sort." },
+          { name: "Santé divine", type: "PASSIF", range: "–", desc: "Immunité totale aux maladies.", note: "Purement passif, aucune action requise." },
+          { name: "Attaque supplémentaire", type: "PASSIF", range: "–", desc: "Deux attaques au lieu d'une lors de l'action Attaquer, dès le niveau 5.", note: "Multiplie les occasions de déclencher Châtiment divin sur le même tour." },
+          { name: "Aura de protection", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et les alliés proches gagnent un bonus aux jets de sauvegarde égal au mod. Cha (min. +1), tant que le lanceur n'est pas neutralisé.", note: "Dès le niveau 6. Se positionner au centre du groupe pour en faire profiter le plus d'alliés possible." },
+          { name: "Aura de bravoure", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et les alliés proches sont immunisés à l'effroi tant que le lanceur reste conscient.", note: "Dès le niveau 10. Même portée et règles de cumul que l'Aura de protection : les deux se complètent naturellement." },
+          { name: "Colère de la nature (Canalisation)", type: "ACTION", range: "3m", desc: "Des lianes spectrales entourent une créature visible. JS Force ou Dextérité (au choix de la cible) ou entravé ; nouveau JS à chaque fin de tour pour se libérer.", note: "1x par repos court ou long (partagé avec Repousser les infidèles). Bon contrôle d'une cible isolée." },
+          { name: "Repousser les infidèles (Canalisation)", type: "ACTION", range: "9m", desc: "Chaque fée ou fiélon dans le rayon qui entend doit réussir un JS Sagesse ou fuir pendant 1 minute ou jusqu'à subir des dégâts.", note: "Très situationnel : n'affecte ni les morts-vivants ni les humanoïdes." },
+          { name: "Aura de protection contre la magie", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et ses alliés proches bénéficient d'une résistance aux dégâts infligés par les sorts.", note: "Dès le niveau 7. Purement passif : se positionner près du groupe avant le combat." },
+          { name: "Sentinelle increvable", type: "PASSIF", range: "Personnel", desc: "Si réduit à 0 PV sans être tué net, peut choisir de tomber à 1 PV à la place. Également immunisé au vieillissement magique.", note: "Dès le niveau 15, 1x par repos long. À garder comme filet de sécurité en fin de combat." },
+          { name: "Champion vénérable", type: "ACTION", range: "Personnel · 1 min", desc: "Transformation en avatar de la nature : regagne 10 PV au début de chaque tour, sorts de paladin castables en action bonus, ennemis proches en désavantage aux JS contre les sorts et la Canalisation Divine du lanceur.", note: "Capacité ultime de niveau 20, 1x par repos long : réserver aux affrontements décisifs." }
+        ]
+      }
+    ]
+  };
+
+  function activeSpellbook() {
+    return state.activeCharacterId === 'deneor' ? DENEOR_SPELLBOOK : SPELLBOOK;
+  }
+
   function spellBadgeStyle(type) {
     var t = type.toUpperCase();
     if (t.indexOf('BONUS') === 0) return 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);';
@@ -616,6 +699,7 @@
     switch (ui.view) {
       case 'stats': return renderStats();
       case 'grimoire': return renderGrimoire();
+      case 'grimoire-prepare': return renderGrimoirePrepare();
       case 'settings': return renderSettings();
       case 'settings-character': return renderSettingsCharacter();
       case 'settings-grimoire': return renderSettingsGrimoire();
@@ -627,7 +711,9 @@
 
   function renderBottomNav() {
     var itemsHtml = PAGES.map(function (page) {
-      var active = page.view === 'settings' ? ui.view.indexOf('settings') === 0 : ui.view === page.view;
+      var active = page.view === 'settings' ? ui.view.indexOf('settings') === 0 :
+        page.view === 'grimoire' ? ui.view.indexOf('grimoire') === 0 :
+        ui.view === page.view;
       return '<div data-action="nav" data-view="' + page.view + '" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;cursor:pointer;color:' + (active ? 'var(--text-gold)' : 'var(--text-dim)') + '">' +
         page.icon(active) +
         '<div style="font-size:10px;font-weight:600;letter-spacing:0.02em">' + page.label + '</div>' +
@@ -834,13 +920,34 @@
     return activeFilters.some(function (f) { return t.indexOf(f.prefix) === 0; });
   }
 
-  function renderGrimoireSection(section, spells) {
+  // Filtres de la page "Préparation de sorts" (Deneor) : Réaction n'a aucun sens pour lui (aucun
+  // sort de ce type dans sa liste), remplacé par "Classe" qui révèle les capacités de classe/serment
+  // sous l'onglet de niveau en cours, sans changer d'onglet.
+  var PREPARE_FILTERS = [
+    { key: 'action', label: 'Action', prefix: 'ACTION', style: 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);' },
+    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);' },
+    { key: 'classe', label: 'Classe', style: 'background:rgba(var(--border-tint),0.28);border:1px solid var(--border-strong);color:var(--text-gold);' }
+  ];
+
+  function spellMatchesPrepareTypeFilters(spell) {
+    var activeFilters = PREPARE_FILTERS.filter(function (f) { return f.prefix && ui.prepareFilters[f.key]; });
+    if (!activeFilters.length) return true;
+    var t = spell.type.toUpperCase();
+    return activeFilters.some(function (f) { return t.indexOf(f.prefix) === 0; });
+  }
+
+  function renderGrimoireSection(section, spells, prepareMode) {
     var rowsHtml = spells.map(function (spell, i) {
-      return '<div style="padding:11px 14px;background:' + (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)') + ';border-bottom:1px solid rgba(var(--border-tint),0.14)">' +
+      var alwaysAvailable = prepareMode && spell.alwaysAvailable;
+      var prepared = prepareMode && !spell.alwaysAvailable && profile().preparedSpells.indexOf(spell.name) !== -1;
+      var clickable = prepareMode && !spell.alwaysAvailable;
+      return '<div ' + (clickable ? 'data-action="toggle-prepared-spell" data-name="' + escapeHtml(spell.name) + '"' : '') +
+        ' style="padding:11px 14px;background:' + (prepared ? 'rgba(var(--border-tint),0.16)' : (i % 2 ? 'var(--bg-card-alt)' : 'var(--bg-card)')) + ';border-bottom:1px solid rgba(var(--border-tint),0.14);' + (clickable ? 'cursor:pointer;' : '') + (prepared ? 'border-left:3px solid var(--border-strong);' : '') + '">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
           '<div style="font-size:14px;font-weight:700;color:var(--text-main);font-family:\'Cinzel\',serif">' + escapeHtml(spell.name) + '</div>' +
           '<div style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
             '<div style="display:flex;align-items:center;gap:5px">' +
+              (alwaysAvailable ? '<div style="font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-gold);background:rgba(var(--border-tint),0.18);border:1px solid rgba(var(--border-tint),0.4);padding:2px 7px;border-radius:8px;white-space:nowrap">Toujours disponible</div>' : '') +
               '<div style="background:rgba(var(--border-tint),0.12);border:1px solid rgba(var(--border-tint),0.32);color:var(--text-chip);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap">' + escapeHtml(section.levelTag) + '</div>' +
               '<div style="' + spellBadgeStyle(spell.type) + 'padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap">' + escapeHtml(spell.type) + '</div>' +
             '</div>' +
@@ -858,14 +965,8 @@
     '</div>';
   }
 
-  function renderGrimoire() {
-    var animDirection = ui.grimoireAnimDirection;
-    ui.grimoireAnimDirection = null;
-
-    var tabs = grimoireTabs();
-    if (tabs.indexOf(ui.grimoireTab) === -1) ui.grimoireTab = 0;
-
-    var tabsHtml = tabs.map(function (tab) {
+  function grimoireTabsHtml(tabs) {
+    return tabs.map(function (tab) {
       var active = tab === ui.grimoireTab;
       return '<div data-action="grimoire-tab" data-tab="' + tab + '" style="flex:none;min-width:38px;height:32px;padding:0 10px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;user-select:none;' +
         (active
@@ -873,6 +974,16 @@
           : 'background:transparent;border:1px solid rgba(var(--border-tint),0.2);color:var(--text-dim);') +
         '">' + escapeHtml(grimoireTabLabel(tab)) + '</div>';
     }).join('');
+  }
+
+  function renderGrimoire() {
+    var animDirection = ui.grimoireAnimDirection;
+    ui.grimoireAnimDirection = null;
+
+    var tabs = grimoireTabs();
+    if (tabs.indexOf(ui.grimoireTab) === -1) ui.grimoireTab = 0;
+
+    var tabsHtml = grimoireTabsHtml(tabs);
 
     var filterChipsHtml = GRIMOIRE_FILTERS.map(function (f) {
       var active = !!ui.grimoireFilters[f.key];
@@ -881,9 +992,13 @@
         '">' + escapeHtml(f.label) + '</div>';
     }).join('');
 
-    var matchingSections = SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
+    var isDeneor = state.activeCharacterId === 'deneor';
+    var matchingSections = activeSpellbook().sections.filter(function (s) { return s.level === ui.grimoireTab; });
     var sectionsWithSpells = matchingSections.map(function (s) {
-      return { section: s, spells: s.spells.filter(spellMatchesGrimoireFilters) };
+      var visibleSpells = (isDeneor && s.level !== 'classe')
+        ? s.spells.filter(function (spell) { return spell.alwaysAvailable || profile().preparedSpells.indexOf(spell.name) !== -1; })
+        : s.spells;
+      return { section: s, spells: visibleSpells.filter(spellMatchesGrimoireFilters) };
     }).filter(function (x) { return x.spells.length > 0; });
     var totalSpellsAtLevel = matchingSections.reduce(function (sum, s) { return sum + s.spells.length; }, 0);
 
@@ -897,11 +1012,69 @@
     }
 
     return (
-      '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
+      '<div style="display:flex;flex-direction:column;height:100%;gap:12px;position:relative">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;flex:none;gap:8px">' +
           '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">Grimoire</div>' +
           '<div style="display:flex;gap:6px">' + filterChipsHtml + '</div>' +
         '</div>' +
+        '<div class="hscroll" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">' + tabsHtml + '</div>' +
+        '<div id="grimoireSwipe" data-scroll-root class="' + (animDirection === 'next' ? 'grimoire-anim-next' : animDirection === 'prev' ? 'grimoire-anim-prev' : '') + '" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:' + (isDeneor ? '68px' : '4px') + '">' + contentHtml + '</div>' +
+        (isDeneor
+          ? '<div id="grimoirePrepareFab" data-action="open-grimoire-prepare" data-back="grimoire" style="position:absolute;left:0;right:0;bottom:0;height:48px;border-radius:10px;background:var(--border-strong);color:var(--ink-bright);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.35);transition:opacity 200ms ease-out" class="font-cinzel">Préparer mes sorts</div>'
+          : '') +
+      '</div>'
+    );
+  }
+
+  function renderGrimoirePrepare() {
+    var animDirection = ui.grimoireAnimDirection;
+    ui.grimoireAnimDirection = null;
+
+    var tabs = grimoireTabs();
+    if (tabs.indexOf(ui.grimoireTab) === -1) ui.grimoireTab = 0;
+    var tabsHtml = grimoireTabsHtml(tabs);
+
+    var filterChipsHtml = PREPARE_FILTERS.map(function (f) {
+      var active = !!ui.prepareFilters[f.key];
+      return '<div data-action="toggle-prepare-filter" data-filter="' + f.key + '" style="flex:none;height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:0.02em;cursor:pointer;user-select:none;' +
+        (active ? f.style : 'background:transparent;border:1px solid rgba(var(--border-tint),0.25);color:var(--text-dim);') +
+        '">' + escapeHtml(f.label) + '</div>';
+    }).join('');
+
+    var matchingSections = DENEOR_SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
+    var sectionsWithSpells = matchingSections.map(function (s) {
+      return { section: s, spells: s.spells.filter(spellMatchesPrepareTypeFilters) };
+    }).filter(function (x) { return x.spells.length > 0; });
+    var totalSpellsAtLevel = matchingSections.reduce(function (sum, s) { return sum + s.spells.length; }, 0);
+
+    var contentHtml;
+    if (sectionsWithSpells.length) {
+      contentHtml = sectionsWithSpells.map(function (x) { return renderGrimoireSection(x.section, x.spells, true); }).join('<div style="height:14px"></div>');
+    } else if (totalSpellsAtLevel === 0) {
+      contentHtml = '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort à ce niveau.</div>';
+    } else {
+      contentHtml = '<div style="padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim)">Aucun sort ne correspond aux filtres sélectionnés.</div>';
+    }
+
+    if (ui.prepareFilters.classe && ui.grimoireTab !== 'classe') {
+      var classeSection = DENEOR_SPELLBOOK.sections.filter(function (s) { return s.level === 'classe'; })[0];
+      if (classeSection) {
+        contentHtml += '<div style="height:14px"></div>' + renderGrimoireSection(classeSection, classeSection.spells);
+      }
+    }
+
+    var preparedCount = profile().preparedSpells.length;
+
+    return (
+      '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none">' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<div data-action="nav" data-view="' + (ui.grimoirePrepareBackView || 'grimoire') + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main)">' + iconArrowLeft() + '</div>' +
+            '<div style="font-size:19px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">Préparation de sorts</div>' +
+          '</div>' +
+          '<div style="flex:none;background:var(--border-strong);color:var(--ink-bright);font-weight:700;font-size:13px;padding:7px 14px;border-radius:14px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);white-space:nowrap">' + preparedCount + ' préparé' + (preparedCount === 1 ? '' : 's') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:none">' + filterChipsHtml + '</div>' +
         '<div class="hscroll" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">' + tabsHtml + '</div>' +
         '<div id="grimoireSwipe" data-scroll-root class="' + (animDirection === 'next' ? 'grimoire-anim-next' : animDirection === 'prev' ? 'grimoire-anim-prev' : '') + '" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:4px">' + contentHtml + '</div>' +
       '</div>'
@@ -1062,14 +1235,22 @@
   }
 
   function renderSettingsGrimoire() {
-    return (
-      '<div data-scroll-root style="display:flex;flex-direction:column;height:100%;gap:14px;overflow-y:auto">' +
-        renderSettingsHeader('Paramétrer le Grimoire') +
-        '<div style="font-size:12px;color:var(--text-dim);line-height:1.4">Le contenu du Grimoire de Calix Noctavel est actuellement fixe et non éditable.</div>' +
+    var isDeneor = state.activeCharacterId === 'deneor';
+    var bodyHtml = isDeneor
+      ? ('<div style="font-size:12px;color:var(--text-dim);line-height:1.4">Le Grimoire de Deneor Sentariel utilise un système de préparation de sorts : les sorts de serment, les capacités de classe et les passifs sont toujours disponibles, le reste doit être préparé.</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
+          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Sorts préparés</label>' +
+          '<div data-action="open-grimoire-prepare" data-back="settings-grimoire" style="height:46px;border-radius:6px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Préparer mes sorts</div>' +
+        '</div>')
+      : ('<div style="font-size:12px;color:var(--text-dim);line-height:1.4">Le contenu du Grimoire de Calix Noctavel est actuellement fixe et non éditable.</div>' +
         '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
           '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Mode de lancer de sorts</label>' +
           '<div style="padding:14px;background:var(--bg-card);border:1px dashed rgba(var(--border-tint),0.4);border-radius:12px;color:var(--text-dim);font-size:13px;text-align:center">À venir (sorts connus / préparés)</div>' +
-        '</div>' +
+        '</div>');
+    return (
+      '<div data-scroll-root style="display:flex;flex-direction:column;height:100%;gap:14px;overflow-y:auto">' +
+        renderSettingsHeader('Paramétrer le Grimoire') +
+        bodyHtml +
       '</div>'
     );
   }
@@ -1149,18 +1330,21 @@
     var p = profile();
     var checks = ui.shortRestChecks;
     var rows = [
-      { key: 'hp', label: 'Total de PV' },
-      { key: 'spells', label: 'Emplacements de sorts' },
-      { key: 'tempHp', label: 'PV temporaires' },
-      { key: 'classResource', label: 'Ressource(s) de classe' }
+      { key: 'hp', label: 'Restaurer les points de vie' },
+      { key: 'spells', label: 'Rétablir les emplacements de sort' },
+      { key: 'tempHp', label: 'Retirer les points de vie temporaires' },
+      { key: 'classResource', label: 'Restaurer les ressources de classe' }
     ];
     var rowsHtml = rows.map(function (r) {
       var checked = !!checks[r.key];
       return '<div data-action="toggle-rest-check" data-key="' + r.key + '" style="display:flex;align-items:center;gap:10px;height:40px;cursor:pointer">' +
-        '<div style="width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;background:' + (checked ? 'var(--ink-bright)' : 'transparent') + ';border:1px solid ' + (checked ? 'var(--ink-bright)' : 'var(--checkbox-border-idle)') + '">' + (checked ? ICON_CHECK : '') + '</div>' +
+        '<div style="width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;background:' + (checked ? 'var(--border-strong)' : 'transparent') + ';border:1px solid ' + (checked ? 'var(--border-strong)' : 'var(--checkbox-border-idle)') + '">' + (checked ? ICON_CHECK : '') + '</div>' +
         '<div style="font-size:13px">' + escapeHtml(r.label) + '</div>' +
         '</div>';
     }).join('');
+
+    var anyChecked = rows.some(function (r) { return !!checks[r.key]; });
+    var disabledStyle = anyChecked ? '' : 'opacity:0.45;pointer-events:none;';
 
     return '<div id="restOverlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;box-sizing:border-box">' +
       '<div style="width:100%;max-width:300px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.3);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">' +
@@ -1169,7 +1353,10 @@
           '<div data-action="cancel-rest" style="width:28px;height:28px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-label);cursor:pointer">' + iconClose() + '</div>' +
         '</div>' +
         rowsHtml +
-        '<div data-action="confirm-rest" style="height:44px;border-radius:6px;background:var(--ink-bright);border:none;color:var(--ink-dark);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:4px">Se reposer</div>' +
+        '<div data-action="confirm-rest" style="height:44px;border-radius:6px;background:var(--border-strong);border:1px solid rgba(var(--border-tint),0.34);color:var(--ink-bright);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:4px;' + disabledStyle + '" class="font-cinzel">Se reposer</div>' +
+        (state.activeCharacterId === 'deneor'
+          ? '<div data-action="confirm-rest-and-prepare" style="height:40px;border-radius:6px;background:transparent;border:1px solid rgba(var(--border-tint),0.34);color:var(--text-label);font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;' + disabledStyle + '">Se reposer et préparer des sorts</div>'
+          : '') +
       '</div>' +
     '</div>';
   }
@@ -1335,6 +1522,17 @@
           grimoireStep(dx < 0 ? 1 : -1);
         }
       }, { passive: true });
+
+      var grimoirePrepareFab = document.getElementById('grimoirePrepareFab');
+      if (grimoirePrepareFab) {
+        var updateFabVisibility = function () {
+          var atTop = grimoireSwipe.scrollTop <= 4;
+          grimoirePrepareFab.style.opacity = atTop ? '1' : '0';
+          grimoirePrepareFab.style.pointerEvents = atTop ? 'auto' : 'none';
+        };
+        updateFabVisibility();
+        grimoireSwipe.addEventListener('scroll', updateFabVisibility, { passive: true });
+      }
     }
 
     var characterCarouselSwipe = document.getElementById('characterCarouselSwipe');
@@ -1603,6 +1801,31 @@
       case 'confirm-rest':
         confirmRest();
         break;
+      case 'confirm-rest-and-prepare':
+        confirmRestAndPrepare();
+        break;
+
+      case 'open-grimoire-prepare': {
+        var prepareBack = e.currentTarget.getAttribute('data-back');
+        ui.grimoirePrepareBackView = prepareBack || 'grimoire';
+        ui.view = 'grimoire-prepare';
+        render();
+        break;
+      }
+      case 'toggle-prepared-spell': {
+        var spellName = e.currentTarget.getAttribute('data-name');
+        var prepared = profile().preparedSpells;
+        var spellIdx = prepared.indexOf(spellName);
+        if (spellIdx === -1) prepared.push(spellName); else prepared.splice(spellIdx, 1);
+        saveState(); render();
+        break;
+      }
+      case 'toggle-prepare-filter': {
+        var prepareFilterKey = e.currentTarget.getAttribute('data-filter');
+        ui.prepareFilters[prepareFilterKey] = !ui.prepareFilters[prepareFilterKey];
+        render();
+        break;
+      }
 
       case 'character-carousel-step': {
         var carouselDelta = parseInt(e.currentTarget.getAttribute('data-delta'), 10);
@@ -1684,7 +1907,7 @@
     render();
   }
 
-  function confirmRest() {
+  function applyRestChecks() {
     var p = profile();
     var checks = ui.shortRestChecks;
     if (checks.hp) p.hp.current = p.hp.max;
@@ -1699,7 +1922,20 @@
         cr.used = cr.used.map(function () { return false; });
       });
     }
+  }
+
+  function confirmRest() {
+    applyRestChecks();
     ui.shortRestOpen = false;
+    saveState();
+    render();
+  }
+
+  function confirmRestAndPrepare() {
+    applyRestChecks();
+    ui.shortRestOpen = false;
+    ui.grimoirePrepareBackView = 'tracker';
+    ui.view = 'grimoire-prepare';
     saveState();
     render();
   }
