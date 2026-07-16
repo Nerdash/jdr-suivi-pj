@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cantrip - Admin Grimoire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-gradient-1: #f6ecd2;
+    --bg-gradient-2: #ecdcb0;
+    --bg-deep: #e2cd9c;
+    --bg-card: #f1e2bc;
+    --bg-card-alt: #e8d7ab;
+    --bg-nav: #e6d4a2;
+    --border-strong: #8a6a3a;
+    --border-tint: 122,90,42;
+    --border-card: rgba(var(--border-tint), 0.2);
+    --text-main: #3a2a15;
+    --text-gold: #8a5a16;
+    --text-label: #7a6440;
+    --text-muted: #8f7850;
+    --text-dim: #a89470;
+    --text-desc: #5c4a2c;
+    --text-note: #7a6440;
+    --text-chip: #6b5430;
+    --accent-red-text: #b91c1c;
+    --accent-green-text: #157a3d;
+    --accent-blue-text: #0a6ea8;
+    --accent-purple-text: #6d28d9;
+    --accent-gray-text: #55503f;
+    --accent-gold-badge-text: #7c4a12;
+    --bg-texture: rgba(90,60,20,0.035);
+    --ink-bright: #efe4cf;
+    --admin-bg: #cbb27a;
+    --admin-panel: #d9c393;
+  }
+  :root[data-theme="deneor"] {
+    --bg-gradient-1: #1a3327;
+    --bg-gradient-2: #0d1b15;
+    --bg-deep: #0a1712;
+    --bg-card: #173224;
+    --bg-card-alt: #12281c;
+    --bg-nav: #0f2018;
+    --border-strong: #154734;
+    --border-tint: 90,170,130;
+    --text-main: #e7f1ea;
+    --text-gold: #e6c988;
+    --text-label: #a9c9b4;
+    --text-muted: #8caf9b;
+    --text-dim: #4f6f5c;
+    --text-desc: #cfe2d5;
+    --text-note: #83a692;
+    --text-chip: #bcd6c4;
+    --accent-red-text: #fca5a5;
+    --accent-green-text: #86efac;
+    --accent-blue-text: #7dd3fc;
+    --accent-purple-text: #c4b5fd;
+    --accent-gray-text: #cbd5e1;
+    --accent-gold-badge-text: #e0c890;
+    --bg-texture: rgba(255,255,255,0.012);
+    --admin-bg: #0e1f17;
+    --admin-panel: #14261c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; }
+  body {
+    font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+    background: var(--admin-bg);
+    color: var(--text-main);
+    min-height:100vh;
+    transition: background 0.2s;
+  }
+  .font-cinzel { font-family:'Cinzel', serif; }
+  .mono { font-family:'JetBrains Mono', monospace; }
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    padding:16px 24px;background:var(--admin-panel);border-bottom:1px solid rgba(var(--border-tint),0.3);
+  }
+  .topbar h1{font-size:19px;margin:0;letter-spacing:0.02em;color:var(--text-gold);}
+  .topbar .sub{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;}
+  .char-switch{display:flex;gap:6px;background:rgba(var(--border-tint),0.12);padding:4px;border-radius:10px;}
+  .char-switch button{
+    border:none;background:transparent;padding:8px 14px;border-radius:7px;cursor:pointer;
+    font-size:13px;font-weight:600;color:var(--text-label);font-family:inherit;
+  }
+  .char-switch button.active{background:var(--border-strong);color:var(--ink-bright);}
+  .btn{
+    border:1px solid var(--border-strong);background:transparent;color:var(--text-gold);
+    padding:9px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;
+  }
+  .btn:hover{background:var(--border-strong);color:var(--ink-bright);}
+  .btn.primary{background:var(--border-strong);color:var(--ink-bright);}
+  .btn.small{padding:5px 10px;font-size:11px;}
+  .btn.danger{border-color:var(--accent-red-text);color:var(--accent-red-text);}
+  .btn.danger:hover{background:var(--accent-red-text);color:#fff;}
+
+  .layout{display:flex;gap:26px;padding:26px;max-width:1200px;margin:0 auto;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+
+  .phone{
+    width:480px;max-width:100%;flex:none;
+    background:
+      linear-gradient(160deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%),
+      repeating-linear-gradient(45deg, var(--bg-texture) 0px, var(--bg-texture) 2px, transparent 2px, transparent 7px);
+    border-radius:22px;
+    border:6px solid #2a2018;
+    box-shadow:0 12px 40px rgba(0,0,0,0.35);
+    padding:20px 16px 16px;
+    min-height:640px;
+    display:flex;flex-direction:column;gap:12px;
+    position:relative;
+  }
+  .grim-header{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .grim-title{font-size:21px;font-weight:700;letter-spacing:0.3px;color:var(--text-main);}
+  .filter-chips{display:flex;gap:6px;}
+  .chip{
+    height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;letter-spacing:0.02em;cursor:pointer;user-select:none;
+    background:transparent;border:1px solid rgba(var(--border-tint),0.25);color:var(--text-dim);
+  }
+  .chip.active-action{background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);}
+  .chip.active-bonus{background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);}
+  .chip.active-reaction{background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);}
+
+  .hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+  .hscroll::-webkit-scrollbar{display:none;}
+  .tab{
+    position:relative;flex:none;min-width:38px;height:32px;padding:0 12px;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;user-select:none;
+    background:transparent;border:1px solid rgba(var(--border-tint),0.2);color:var(--text-dim);
+  }
+  .tab.active{background:rgba(var(--border-tint),0.28);border:1px solid var(--border-strong);color:var(--text-gold);}
+  .tab-add{background:transparent;border:1px dashed rgba(var(--border-tint),0.4);color:var(--text-dim);}
+
+  .spell-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-bottom:70px;}
+  .section-block{display:flex;flex-direction:column;gap:6px;}
+  .section-title{font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+  .section-title .del-section{font-size:10px;color:var(--accent-red-text);cursor:pointer;text-transform:none;letter-spacing:0;opacity:0.75;}
+  .section-cards{display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid rgba(var(--border-tint),0.2);}
+  .spell-row{padding:11px 14px;border-bottom:1px solid rgba(var(--border-tint),0.14);cursor:pointer;position:relative;}
+  .spell-row:hover{filter:brightness(0.96);}
+  .spell-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .spell-name{font-size:14px;font-weight:700;color:var(--text-main);font-family:'Cinzel',serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .spell-meta{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .badge-row{display:flex;align-items:center;gap:5px;}
+  .lvl-badge{background:rgba(var(--border-tint),0.12);border:1px solid rgba(var(--border-tint),0.32);color:var(--text-chip);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap;}
+  .type-badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.03em;white-space:nowrap;}
+  .spell-range{font-size:10px;color:var(--text-muted);white-space:nowrap;}
+  .spell-desc{font-size:12.5px;color:var(--text-desc);margin-top:6px;line-height:1.4;}
+  .spell-note{font-size:11px;color:var(--text-note);font-style:italic;margin-top:4px;line-height:1.3;}
+  .always-tag{display:inline-block;margin-top:4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--accent-green-text);}
+
+  .fab{
+    position:absolute;right:20px;bottom:20px;width:52px;height:52px;border-radius:26px;
+    background:var(--border-strong);color:var(--ink-bright);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-size:26px;font-weight:400;border:none;
+  }
+
+  .side-panel{width:320px;flex:none;background:var(--admin-panel);border:1px solid rgba(var(--border-tint),0.3);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;}
+  .side-panel h2{font-size:15px;margin:0;color:var(--text-gold);font-family:'Cinzel',serif;}
+  .side-panel p{font-size:12.5px;color:var(--text-desc);line-height:1.5;margin:0;}
+  .side-panel .actions{display:flex;flex-direction:column;gap:8px;}
+  .empty-hint{padding:24px 4px;text-align:center;font-size:12px;color:var(--text-dim);}
+
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(10,8,6,0.65);align-items:center;justify-content:center;padding:20px;z-index:60;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--admin-panel);border:1px solid var(--border-strong);border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:24px;color:var(--text-main);}
+  .modal h3{font-family:'Cinzel',serif;color:var(--text-gold);margin-top:0;font-size:18px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-label);margin-bottom:5px;font-weight:600;}
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
+    width:100%;background:rgba(255,255,255,0.5);border:1px solid rgba(var(--border-tint),0.3);color:var(--text-main);
+    padding:9px 11px;border-radius:6px;font-size:14px;font-family:inherit;
+  }
+  :root[data-theme="deneor"] .field input, :root[data-theme="deneor"] .field select, :root[data-theme="deneor"] .field textarea{
+    background:rgba(0,0,0,0.25);
+  }
+  .field textarea{resize:vertical;min-height:70px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px;border-top:1px solid rgba(var(--border-tint),0.25);padding-top:16px;}
+  .modal-actions .right{display:flex;gap:8px;}
+
+  .export-tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .export-tabs button{flex:1;}
+  #exportArea{width:100%;min-height:280px;font-size:11.5px;background:#171209;color:#efe4cf;border-radius:8px;padding:14px;border:1px solid rgba(var(--border-tint),0.3);white-space:pre;overflow:auto;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--border-strong);color:var(--ink-bright);padding:10px 20px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:opacity 0.25s;z-index:100;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body data-theme="calix">
+<div class="topbar">
+  <div>
+    <h1 class="font-cinzel">Cantrip - Admin Grimoire</h1>
+    <div class="sub" id="fileStatus">Fichier a transmettre a Claude Code pour mise a jour et push Git</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="char-switch" id="charSwitch"></div>
+    <button class="btn" id="btnImportFile">Importer un fichier</button>
+    <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+    <button class="btn primary" id="btnExportFile">Exporter le fichier</button>
+    <button class="btn" id="btnGenCode">Voir le code JS</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="phone" id="phone">
+    <div class="grim-header">
+      <div class="grim-title font-cinzel">Grimoire</div>
+      <div class="filter-chips" id="filterChips"></div>
+    </div>
+    <div class="hscroll" id="levelTabs"></div>
+    <div class="spell-scroll" id="spellScroll"></div>
+    <button class="fab" id="fabAdd" title="Ajouter un sort">+</button>
+  </div>
+
+  <div class="side-panel">
+    <h2>Comment ça marche</h2>
+    <p>Ce panneau reproduit exactement le rendu du Grimoire dans Cantrip (theme, filtres, onglets de niveau). Clique sur un sort pour le modifier, ou sur le bouton + pour en ajouter un au niveau affiche.</p>
+    <p>Tes modifications sont sauvegardees automatiquement dans ce navigateur. Pour transmettre le resultat a Claude Code :</p>
+    <p><b>1.</b> Clique sur "Exporter le fichier" une fois tes sorts ajoutes/modifies.<br>
+    <b>2.</b> Donne le fichier telecharge a Claude Code avec l'instruction de mettre a jour SPELLBOOK et DENEOR_SPELLBOOK dans index.html, puis de commit/push.<br>
+    <b>3.</b> Pour continuer l'edition plus tard ou sur ton autre PC, utilise "Importer un fichier" avec ce meme export (ou un export precedent).</p>
+    <div class="actions">
+      <button class="btn" id="btnAddLevel">Gerer les niveaux</button>
+      <button class="btn" id="btnReset">Reinitialiser depuis les donnees actuelles de l'app</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: add/edit spell -->
+<div class="modal-backdrop" id="spellModalBackdrop">
+  <div class="modal">
+    <h3 id="spellModalTitle">Ajouter un sort</h3>
+    <form id="spellForm">
+      <input type="hidden" id="sp_index">
+      <div class="field">
+        <label>Nom du sort</label>
+        <input type="text" id="sp_name" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Type</label>
+          <input type="text" id="sp_type" list="typeOptions" placeholder="ACTION" required>
+          <datalist id="typeOptions">
+            <option value="ACTION"></option>
+            <option value="BONUS"></option>
+            <option value="RÉACTION"></option>
+            <option value="RITUEL"></option>
+            <option value="RITUEL 1 MIN"></option>
+            <option value="PASSIF"></option>
+            <option value="10 MIN"></option>
+            <option value="REPOS COURT"></option>
+            <option value="SERMENT"></option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label>Portee / duree</label>
+          <input type="text" id="sp_range" placeholder="18m . Conc. 1 min" required>
+        </div>
+      </div>
+      <div class="field" id="alwaysAvailableField" style="display:none;">
+        <div class="check-row">
+          <input type="checkbox" id="sp_always">
+          <label style="margin:0;text-transform:none;font-weight:400;" for="sp_always">Toujours disponible (sort de serment, non soumis a preparation)</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="sp_desc" required></textarea>
+      </div>
+      <div class="field">
+        <label>Note tactique (optionnel)</label>
+        <textarea id="sp_note"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="btnDeleteSpell" style="display:none;">Supprimer</button>
+        <div class="right">
+          <button type="button" class="btn" id="btnCancelSpell">Annuler</button>
+          <button type="submit" class="btn primary">Enregistrer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: manage levels -->
+<div class="modal-backdrop" id="levelModalBackdrop">
+  <div class="modal">
+    <h3>Gerer les niveaux</h3>
+    <div id="levelList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;"></div>
+    <div style="border-top:1px solid rgba(var(--border-tint),0.25);padding-top:16px;">
+      <div class="field-row">
+        <div class="field">
+          <label>Niveau</label>
+          <select id="lv_level">
+            <option value="0">0 (tour de magie)</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="classe">Capacites de classe</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Titre de section</label>
+          <input type="text" id="lv_title" placeholder="Niveau 5">
+        </div>
+        <div class="field">
+          <label>Etiquette</label>
+          <input type="text" id="lv_tag" placeholder="Niv. 5">
+        </div>
+      </div>
+      <button class="btn primary" id="btnAddLevelConfirm" style="width:100%;">Ajouter ce niveau</button>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div class="right"><button type="button" class="btn" id="btnCloseLevelModal">Fermer</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: export -->
+<div class="modal-backdrop" id="exportModalBackdrop">
+  <div class="modal" style="max-width:680px;">
+    <h3>Exporter le code</h3>
+    <p style="font-size:12.5px;color:var(--text-desc);margin-top:-8px;">Copie ce bloc et remplace la constante correspondante dans <span class="mono">index.html</span> (ou transmets-le a Claude Code avec l'instruction de remplacement).</p>
+    <div class="export-tabs">
+      <button class="btn" id="expTabCalix">Calix Noctavel</button>
+      <button class="btn" id="expTabDeneor">Deneor Sentariel</button>
+    </div>
+    <textarea id="exportArea" readonly></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="btnDownloadExport">Telecharger (.js)</button>
+      <div class="right">
+        <button type="button" class="btn primary" id="btnCopyExport">Copier</button>
+        <button type="button" class="btn" id="btnCloseExport">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var STORAGE_KEY = 'cantrip_admin_grimoire_v1';
+
+// ---- seed data (copie exacte des grimoires actuels de Cantrip) ----
+  var SEED_CALIX = {
+    sections: [
+      {
+        title: "Sorts mineurs (niveau 0)",
+        levelTag: "Niv. 0",
+        level: 0,
+        spells: [
+          { name: "Moquerie cruelle", type: "ACTION", range: "18m", desc: "Jet de sauvegarde de Sagesse ou 1d4 dégâts psychiques + désavantage au prochain jet d'attaque de la cible.", note: "Fonctionne si la cible entend (sans comprendre). 2d4 au niveau 5, 3d4 au niveau 11." },
+          { name: "Main de mage", type: "ACTION", range: "9m", desc: "Main spectrale : manipule des objets, ouvre des portes non verrouillées, range ou récupère un objet. Dure 1 minute.", note: "Ne peut pas attaquer ni porter plus de 5 kg." },
+          { name: "Message", type: "ACTION", range: "36m", desc: "Murmure secret à une cible visible. Elle peut répondre. Traverse les obstacles (sauf métal/plomb).", note: "Durée : 1 round. La cible seule entend." },
+          { name: "Thaumaturgie", type: "ACTION", range: "Illimitée", desc: "Effets mineurs : voix amplifiée, flammes, tremblements, portes. Durée 1 minute.", note: "Ascendance infernale." }
+        ]
+      },
+      {
+        title: "Niveau 1",
+        levelTag: "Niv. 1",
+        level: 1,
+        spells: [
+          { name: "Fou rire de Tasha", type: "ACTION", range: "9m · Conc. 1 min", desc: "Jet de sauvegarde de Sagesse ou la cible tombe à terre, incapable d'agir. Nouveau jet en fin de tour ou après des dégâts.", note: "Inefficace si Intelligence 4 ou moins." },
+          { name: "Identification", type: "RITUEL 1 MIN", range: "Contact", desc: "Révèle les propriétés d'un objet magique (charges, sorts) ou les sorts actifs sur une créature.", note: "Utilisable sans emplacement en rituel. Nécessite une perle à 100 po + une plume de hibou." },
+          { name: "Lueurs féeriques", type: "ACTION", range: "18m · Conc. 1 min", desc: "Cube de 6m : jet de sauvegarde de Dextérité ou les créatures sont illuminées. Avantage sur toutes les attaques contre elles. Annule l'invisibilité.", note: "Idéal au tour 1 si les ennemis sont groupés." },
+          { name: "Mot de guérison", type: "BONUS", range: "18m", desc: "Soigne 1d4 + Cha à distance. +1d4 par niveau supérieur. Relève un allié à 0 PV sans avoir à s'approcher.", note: "Priorité si un allié tombe. Permet d'agir aussi en action ce tour." },
+          { name: "Soins", type: "ACTION", range: "Contact", desc: "Soigne 1d8 + Cha au toucher. +1d8 par niveau supérieur.", note: "Nécessite de s'approcher. Préférer Mot de guérison en combat." }
+        ]
+      },
+      {
+        title: "Niveau 2",
+        levelTag: "Niv. 2",
+        level: 2,
+        spells: [
+          { name: "Image miroir", type: "ACTION", range: "Personnel · 1 min", desc: "3 doubles illusoires. Les attaques sont redirigées sur 1d20 : 6+ (3 doubles) / 8+ (2) / 11+ (1). CA du double = 10 + mod. Dex.", note: "Défense passive, pas de concentration." },
+          { name: "Représailles infernales", type: "RÉACTION", range: "Portée", desc: "Quand blessée par une créature visible : 2d10 dégâts de feu à la cible. Jet de sauvegarde de Dextérité, demi-dégâts si réussi.", note: "Ascendance infernale. 1x / repos long. Lancé comme un sort de niveau 2. Disponible dès le niveau 3." },
+          { name: "Silence", type: "ACTION", range: "36m · Conc. 10 min", desc: "Sphère de 6m : aucun son, immunité au tonnerre. Impossible de lancer des sorts à composante verbale dans la zone.", note: "Rituel possible. Bloque les lanceurs de sorts ennemis." },
+          { name: "Ténèbres", type: "ACTION", range: "60m · Conc. 10 min", desc: "Sphère de 4,5m de ténèbres magiques. Bloque la vision normale et la vision dans le noir.", note: "Ascendance infernale. 1x / repos long. Disponible dès le niveau 5." }
+        ]
+      },
+      {
+        title: "Niveau 3",
+        levelTag: "Niv. 3",
+        level: 3,
+        spells: [
+          { name: "Communication à distance", type: "ACTION", range: "Illimitée", desc: "Message de 25 mots à une créature connue, n'importe où. Elle peut répondre immédiatement.", note: "5% d'échec si sur un autre plan d'existence." },
+          { name: "Hâte", type: "ACTION", range: "9m · Conc. 1 min", desc: "Cible : vitesse x2, +2 CA, avantage aux jets de Dextérité, action supplémentaire (1 attaque / Foncer / Désengager / Se cacher / Utiliser un objet).", note: "À la fin : léthargie 1 tour. Protéger sa concentration absolument." },
+          { name: "Mot de guérison de groupe", type: "BONUS", range: "18m", desc: "Jusqu'à 6 créatures visibles récupèrent chacune 1d4 + Cha. +1d4 par niveau au-delà du 3.", note: "Idéal si plusieurs alliés sont faibles simultanément." },
+          { name: "Retour à la vie", type: "ACTION", range: "Contact", desc: "Ramène une créature morte depuis moins d'une minute à 1 PV.", note: "Consomme des diamants (300 po). Ne restaure pas les membres perdus." }
+        ]
+      },
+      {
+        title: "Niveau 4",
+        levelTag: "Niv. 4",
+        level: 4,
+        spells: [
+          { name: "Porte dimensionnelle", type: "ACTION", range: "150m", desc: "Téléportation vers un endroit visible, visualisé ou décrit. Peut emmener 1 créature consentante à 1,5m.", note: "Échec + 4d6 dégâts si la destination est occupée." }
+        ]
+      },
+      {
+        title: "Capacités de classe et dons",
+        levelTag: "Classe",
+        level: 'classe',
+        spells: [
+          { name: "Inspiration bardique", type: "BONUS", range: "18m", desc: "Donne 1d6 (d8 dès niveau 5) à une créature. Elle ajoute le dé à un jet après le lancer, avant l'annonce du MD.", note: "Utilisations = mod. Cha. Recharge à un repos long (repos court dès niveau 5)." },
+          { name: "Mots cinglants", type: "RÉACTION", range: "18m", desc: "Après un jet (attaque/carac./dégâts) d'une créature : dépense 1 inspiration bardique, soustrait le dé du résultat.", note: "Avant l'annonce du MD. Inefficace si la cible ne peut pas entendre ou est immunisée aux charmes." },
+          { name: "Chant reposant", type: "REPOS COURT", range: "–", desc: "Les alliés qui dépensent des dés de vie lors d'un repos court récupèrent +1d6 PV supplémentaires.", note: "Passe à 1d8 au niveau 9, 1d10 au niveau 13, 1d12 au niveau 17." },
+          { name: "Meneur exaltant", type: "10 MIN", range: "9m", desc: "Jusqu'à 6 créatures gagnent des PV temporaires = niveau + mod. Cha. Recharge à un repos court ou long.", note: "Prérequis : Cha 13+. Idéal avant un combat anticipé." },
+          { name: "Chercheur", type: "PASSIF", range: "–", desc: "Si une information est inconnue : Calix sait généralement où ou auprès de qui la trouver.", note: "Background Sage. Le MD décide si l'information est accessible." }
+        ]
+      }
+    ]
+  };
+
+  // ---- grimoire (Deneor Sentariel — Paladin, Serment des Anciens) ----
+  // alwaysAvailable: sort de serment, jamais dans la liste préparable (voir renderGrimoireSection / renderGrimoire).
+  var SEED_DENEOR = {
+    sections: [
+      {
+        title: "Niveau 1",
+        levelTag: "Niv. 1",
+        level: 1,
+        spells: [
+          { name: "Frappe piégeuse", type: "BONUS", range: "Personnel · Conc. 1 min", alwaysAvailable: true, desc: "Prochaine attaque au corps à corps touchée : des lianes épineuses entravent la cible (JS Force, avantage si taille G+) et infligent 1d6 perforant au début de chacun de ses tours.", note: "Sort de serment, toujours préparé. Combine bien avec Châtiment divin sur la même attaque." },
+          { name: "Communication avec les animaux", type: "RITUEL", range: "Personnel · 10 min", alwaysAvailable: true, desc: "Comprend et communique verbalement avec les bêtes pendant la durée ; leurs réponses restent limitées par leur intelligence.", note: "Utile pour interroger un témoin animal ou calmer une monture affolée. Lançable en rituel, sans consommer d'emplacement." },
+          { name: "Bénédiction", type: "ACTION", range: "9m · Conc. 1 min", desc: "Jusqu'à 3 créatures ajoutent 1d4 à leurs jets d'attaque et de sauvegarde pendant la durée.", note: "Excellent avant un affrontement anticipé, peu coûteux en concentration." },
+          { name: "Bouclier de la foi", type: "BONUS", range: "18m · Conc. 10 min", desc: "+2 CA pour une créature choisie à portée.", note: "Bon réflexe de protection rapide sur un allié ou soi-même en début de combat." },
+          { name: "Cérémonie", type: "RITUEL", range: "Contact (cible à 3m)", desc: "Rite religieux au choix : purifie l'eau, restaure un alignement changé, accorde +1d4 aux caractéristiques ou sauvegardes pendant 24h, protège un cadavre de la non-mort, ou +2 CA à des époux pendant 7 jours.", note: "Sort ritualisé et narratif : utile hors combat pour marquer des moments importants ou préparer une bénédiction longue durée." },
+          { name: "Châtiment calcinant", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque au corps à corps touchée : +1d6 feu et la cible brûle (1d6 feu en début de tour, JS Constitution pour éteindre).", note: "Dégâts répartis dans le temps : utile pour maintenir de la pression sans dépenser plusieurs tours." },
+          { name: "Châtiment courroucé", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque au corps à corps touchée : +1d6 psychique et JS Sagesse ou cible effrayée jusqu'à la fin du sort.", note: "Bon choix contre une cible dangereuse à mettre à distance sans la tuer." },
+          { name: "Châtiment tonitruant", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Première attaque au corps à corps touchée : +2d6 tonnerre et JS Force ou la cible est repoussée de 3m et tombe à terre.", note: "Utile pour écarter une cible d'un bord de gouffre ou d'un allié à terre." },
+          { name: "Détection de la magie", type: "RITUEL", range: "Personnel · Conc. 10 min", desc: "Détecte les auras magiques dans un rayon de 9m et permet d'identifier l'école de magie d'un objet ou d'une créature visible.", note: "Bloqué par 30cm de pierre, 2,5cm de métal, une feuille de plomb ou 90cm de bois/terre." },
+          { name: "Détection du mal et du bien", type: "ACTION", range: "Personnel · Conc. 10 min", desc: "Détecte la présence et la localisation des aberrations, célestes, élémentaires, fées, fiélons et morts-vivants dans un rayon de 9m.", note: "Utile en reconnaissance avant d'ouvrir une porte suspecte." },
+          { name: "Détection du poison et des maladies", type: "RITUEL", range: "Personnel · Conc. 10 min", desc: "Détecte poisons, créatures venimeuses et maladies dans un rayon de 9m, avec leur type.", note: "À lancer avant de goûter un aliment suspect ou de fouiller une zone infestée." },
+          { name: "Duel forcé", type: "BONUS", range: "9m · Conc. 1 min", desc: "JS Sagesse ou la cible a désavantage aux attaques contre toute autre créature que le lanceur et est freinée si elle s'éloigne de plus de 9m.", note: "Idéal pour protéger les alliés fragiles en isolant la cible principale. Prend fin si le lanceur attaque quelqu'un d'autre." },
+          { name: "Faveur divine", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Les attaques à l'arme infligent +1d4 dégâts radiants pendant la durée.", note: "Se déclenche à chaque attaque réussie tant que la concentration tient : bon complément passif en combat prolongé." },
+          { name: "Héroïsme", type: "ACTION", range: "Contact · Conc. 1 min", desc: "La cible consentante est immunisée à l'effroi et gagne des PV temporaires = mod. de caractéristique à chaque début de tour.", note: "À poser sur un allié fragile juste avant un combat contre une créature qui inflige la peur." },
+          { name: "Injonction", type: "ACTION", range: "18m", desc: "JS Sagesse ou la cible exécute un mot au prochain tour (Approche / Lâche / Fuis / Tombe / Halte). Sans effet sur les morts-vivants ou si la cible ne comprend pas.", note: "Utile pour désarmer un adversaire ou l'éloigner d'un allié à terre." },
+          { name: "Protection contre le mal et le bien", type: "ACTION", range: "Contact · Conc. 10 min", desc: "La cible consentante bénéficie d'un désavantage imposé aux attaques des aberrations/célestes/élémentaires/fées/fiélons/morts-vivants contre elle, et d'une protection contre la charme/l'effroi/la possession par ces types.", note: "À réserver aux combats identifiés contre ces familles de créatures : inefficace contre humanoïdes et bêtes." },
+          { name: "Purification de nourriture et d'eau", type: "RITUEL", range: "3m", desc: "Purifie toute nourriture et boisson non magique dans une sphère de 1,5m de rayon, retirant poison et maladie.", note: "Réflexe utile en exploration ou en cas de ravitaillement douteux." },
+          { name: "Soins", type: "ACTION", range: "Contact", desc: "Soigne 1d8 + mod. de caractéristique au toucher. Sans effet sur morts-vivants et artificiels.", note: "Nécessite d'être au contact ; prévoir de s'approcher avant de l'utiliser." }
+        ]
+      },
+      {
+        title: "Niveau 2",
+        levelTag: "Niv. 2",
+        level: 2,
+        spells: [
+          { name: "Rayon de lune", type: "ACTION", range: "36m · Conc. 1 min", alwaysAvailable: true, desc: "Colonne de lumière 1,5m de rayon, 12m de haut. JS Constitution ou 2d10 radiants (demi si réussi) à l'entrée ou au début du tour dans la zone. Déplaçable de 18m par action.", note: "Très efficace contre les métamorphes, qui subissent le JS avec désavantage et sont forcés de reprendre forme." },
+          { name: "Foulée brumeuse", type: "BONUS", range: "Personnel", alwaysAvailable: true, desc: "Téléportation instantanée jusqu'à 9m vers un espace libre visible.", note: "Réserver comme dégagement d'urgence ou pour refermer la distance sur un lanceur de sorts ennemi." },
+          { name: "Aide", type: "ACTION", range: "9m", desc: "Jusqu'à 3 créatures gagnent +5 PV max et actuels pendant 8 heures.", note: "À lancer avant un combat difficile plutôt qu'en réaction à des dégâts déjà subis." },
+          { name: "Appel de destrier", type: "10 MIN", range: "9m", desc: "Invoque un esprit sous forme de monture liée (cheval, poney, chameau, élan ou molosse) de type céleste, fée ou fiélon.", note: "Le lien permet une télépathie à 1,5km et de partager certains sorts lancés sur le cavalier. Réinvocable à volonté hors combat." },
+          { name: "Arme magique", type: "BONUS", range: "Contact · Conc. 1h", desc: "Une arme non magique touchée devient +1 aux jets d'attaque et de dégâts. +2 avec un emplacement de niveau 4+, +3 avec un emplacement de niveau 6+.", note: "Surtout utile contre les créatures résistantes aux armes non magiques." },
+          { name: "Châtiment révélateur", type: "BONUS", range: "Personnel · Conc. 1 min", desc: "Prochaine attaque touchée : +2d6 radiants, la cible devient visible et émet une lumière l'empêchant de redevenir invisible.", note: "Réponse directe à une cible invisible ou susceptible de se dissimuler." },
+          { name: "Localisation d'objet", type: "ACTION", range: "Personnel · Conc. 10 min", desc: "Ressent la direction d'un objet connu (déjà vu de près) ou du plus proche objet d'un type donné, jusqu'à 300m.", note: "Bloqué par une feuille de plomb sur la ligne de mire." },
+          { name: "Protection contre le poison", type: "ACTION", range: "Contact", desc: "Neutralise un poison actif sur la cible ; pour 1h, avantage aux JS contre le poison et résistance aux dégâts de poison.", note: "À garder en réserve pour contrer les effets de statut plutôt que les dégâts bruts." },
+          { name: "Restauration partielle", type: "ACTION", range: "Contact", desc: "Met fin à un des états suivants sur la cible : aveuglement, surdité, paralysie, empoisonnement.", note: "Sort de dépannage rapide en combat, sans nécessiter de repos." },
+          { name: "Zone de vérité", type: "ACTION", range: "18m", desc: "Sphère de 4,5m : JS Charisme ou impossibilité de mentir délibérément dans la zone pendant 10 minutes.", note: "Très utile en interrogatoire, mais la cible reste consciente de l'effet et peut esquiver les questions." }
+        ]
+      },
+      {
+        title: "Capacités de classe et dons",
+        levelTag: "Classe",
+        level: 'classe',
+        spells: [
+          { name: "Serment des Anciens (préceptes)", type: "SERMENT", range: "—", desc: "Entretenir la lumière et repousser les ténèbres où qu'elles s'étendent ; nourrir la vie, la joie et la beauté du monde ; se délecter de l'art, du rire et de la nature ; protéger ce qui est précieux contre la destruction et la corruption.", note: "Préceptes du serment : un repère de roleplay, pas une règle mécanique." },
+          { name: "Sens divin", type: "ACTION", range: "18m", desc: "Détecte la présence de célestes, fiélons ou morts-vivants non cachés pendant 1 round. Utilisations = 1 + mod. Cha.", note: "Recharge à chaque repos long. À utiliser en entrant dans une zone suspecte." },
+          { name: "Imposition des mains", type: "ACTION", range: "Contact", desc: "Réserve de PV = niveau x 5. Restaure des PV au toucher, ou dépense 5 PV pour guérir une maladie ou un poison.", note: "Se recharge intégralement à chaque repos long ; répartir la réserve sur plusieurs cibles si besoin." },
+          { name: "Châtiment divin", type: "ACTION", range: "Contact", desc: "Dépense un emplacement de sort pour infliger 2d8 dégâts radiants supplémentaires (+1d8/niveau au-delà de 1, max 5d8) sur une attaque au corps à corps réussie. +1d8 si la cible est morte-vivante ou fiélon.", note: "À réserver aux coups importants : consomme un emplacement qui ne sert alors plus à lancer un sort." },
+          { name: "Santé divine", type: "PASSIF", range: "–", desc: "Immunité totale aux maladies.", note: "Purement passif, aucune action requise." },
+          { name: "Aura de protection", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et les alliés proches gagnent un bonus aux jets de sauvegarde égal au mod. Cha (min. +1), tant que le lanceur n'est pas neutralisé.", note: "Dès le niveau 6. Se positionner au centre du groupe pour en faire profiter le plus d'alliés possible." },
+          { name: "Aura de bravoure", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et les alliés proches sont immunisés à l'effroi tant que le lanceur reste conscient.", note: "Dès le niveau 10. Même portée et règles de cumul que l'Aura de protection : les deux se complètent naturellement." },
+          { name: "Colère de la nature (Canalisation)", type: "ACTION", range: "3m", desc: "Des lianes spectrales entourent une créature visible. JS Force ou Dextérité (au choix de la cible) ou entravé ; nouveau JS à chaque fin de tour pour se libérer.", note: "1x par repos court ou long (partagé avec Repousser les infidèles). Bon contrôle d'une cible isolée." },
+          { name: "Repousser les infidèles (Canalisation)", type: "ACTION", range: "9m", desc: "Chaque fée ou fiélon dans le rayon qui entend doit réussir un JS Sagesse ou fuir pendant 1 minute ou jusqu'à subir des dégâts.", note: "Très situationnel : n'affecte ni les morts-vivants ni les humanoïdes." },
+          { name: "Aura de protection contre la magie", type: "PASSIF", range: "3m (9m niv.18)", desc: "Le lanceur et ses alliés proches bénéficient d'une résistance aux dégâts infligés par les sorts.", note: "Dès le niveau 7. Purement passif : se positionner près du groupe avant le combat." }
+        ]
+      }
+    ]
+  };
+
+
+// ---- state ----
+var ui = {
+  activeChar: 'calix', // 'calix' | 'deneor'
+  activeLevel: null,
+  filters: { action: false, bonus: false, reaction: false }
+};
+
+function cloneSeed() {
+  return {
+    calix: JSON.parse(JSON.stringify(SEED_CALIX)).sections,
+    deneor: JSON.parse(JSON.stringify(SEED_DENEOR)).sections
+  };
+}
+
+var state;
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return cloneSeed();
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { showToast('Erreur de sauvegarde locale', true); }
+}
+
+function charLabel(c) { return c === 'deneor' ? 'Deneor Sentariel' : 'Calix Noctavel'; }
+function activeSections() { return state[ui.activeChar]; }
+
+function levelOrder(sections) {
+  var nums = sections.filter(function (s) { return s.level !== 'classe'; }).map(function (s) { return s.level; }).sort(function (a, b) { return a - b; });
+  var out = nums.slice();
+  if (sections.some(function (s) { return s.level === 'classe'; })) out.push('classe');
+  return out;
+}
+
+function sectionByLevel(level) {
+  return activeSections().filter(function (s) { return s.level === level; })[0];
+}
+
+// ---- rendu identique a l'app (badges, filtres) ----
+function spellBadgeStyle(type) {
+  var t = type.toUpperCase();
+  if (t.indexOf('BONUS') === 0) return 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);';
+  if (t.indexOf('RÉACTION') === 0) return 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);';
+  if (t.indexOf('RITUEL') === 0) return 'background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.45);color:var(--accent-purple-text);';
+  if (t.indexOf('PASSIF') === 0) return 'background:rgba(148,163,184,0.16);border:1px solid rgba(148,163,184,0.45);color:var(--accent-gray-text);';
+  if (t.indexOf('ACTION') === 0) return 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);';
+  return 'background:rgba(var(--border-tint),0.16);border:1px solid rgba(var(--border-tint),0.45);color:var(--accent-gold-badge-text);';
+}
+
+var GRIMOIRE_FILTERS = [
+  { key: 'action', label: 'Action', prefix: 'ACTION', cls: 'active-action' },
+  { key: 'bonus', label: 'Bonus', prefix: 'BONUS', cls: 'active-bonus' },
+  { key: 'reaction', label: 'Réaction', prefix: 'RÉACTION', cls: 'active-reaction' }
+];
+
+function spellMatchesFilters(spell) {
+  var active = GRIMOIRE_FILTERS.filter(function (f) { return ui.filters[f.key]; });
+  if (!active.length) return true;
+  var t = spell.type.toUpperCase();
+  return active.some(function (f) { return t.indexOf(f.prefix) === 0; });
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function levelTabLabel(level) { return level === 'classe' ? 'Classe' : String(level); }
+
+// ---- render ----
+function render() {
+  document.body.setAttribute('data-theme', ui.activeChar === 'deneor' ? 'deneor' : 'calix');
+
+  // character switch
+  var cs = document.getElementById('charSwitch');
+  cs.innerHTML = ['calix', 'deneor'].map(function (c) {
+    return '<button data-char="' + c + '" class="' + (ui.activeChar === c ? 'active' : '') + '">' + charLabel(c) + '</button>';
+  }).join('');
+  cs.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () { ui.activeChar = b.dataset.char; ui.activeLevel = null; render(); });
+  });
+
+  var sections = activeSections();
+  var order = levelOrder(sections);
+  if (ui.activeLevel === null || order.indexOf(ui.activeLevel) === -1) ui.activeLevel = order.length ? order[0] : null;
+
+  // filter chips
+  var fc = document.getElementById('filterChips');
+  fc.innerHTML = GRIMOIRE_FILTERS.map(function (f) {
+    var active = !!ui.filters[f.key];
+    return '<div class="chip ' + (active ? f.cls : '') + '" data-filter="' + f.key + '">' + f.label + '</div>';
+  }).join('');
+  fc.querySelectorAll('.chip').forEach(function (el) {
+    el.addEventListener('click', function () { ui.filters[el.dataset.filter] = !ui.filters[el.dataset.filter]; render(); });
+  });
+
+  // level tabs
+  var lt = document.getElementById('levelTabs');
+  lt.innerHTML = order.map(function (lvl) {
+    return '<div class="tab ' + (lvl === ui.activeLevel ? 'active' : '') + '" data-level="' + lvl + '">' + levelTabLabel(lvl) + '</div>';
+  }).join('') + '<div class="tab tab-add" id="tabAddLevel">+</div>';
+  lt.querySelectorAll('.tab[data-level]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var v = el.dataset.level;
+      ui.activeLevel = (v === 'classe') ? 'classe' : parseInt(v, 10);
+      render();
+    });
+  });
+  var tabAdd = document.getElementById('tabAddLevel');
+  if (tabAdd) tabAdd.addEventListener('click', openLevelModal);
+
+  // spell list
+  var scroll = document.getElementById('spellScroll');
+  var section = ui.activeLevel === null ? null : sectionByLevel(ui.activeLevel);
+  if (!section) {
+    scroll.innerHTML = '<div class="empty-hint">Aucun niveau. Utilise "Gerer les niveaux" pour en creer un.</div>';
+  } else {
+    var visibleSpells = section.spells.filter(spellMatchesFilters);
+    var rowsHtml = visibleSpells.map(function (spell) {
+      var realIndex = section.spells.indexOf(spell);
+      return '<div class="spell-row" data-index="' + realIndex + '">' +
+        '<div class="spell-row-head">' +
+          '<div class="spell-name">' + escapeHtml(spell.name) + '</div>' +
+          '<div class="spell-meta">' +
+            '<div class="badge-row">' +
+              '<div class="lvl-badge">' + escapeHtml(section.levelTag) + '</div>' +
+              '<div class="type-badge" style="' + spellBadgeStyle(spell.type) + '">' + escapeHtml(spell.type) + '</div>' +
+            '</div>' +
+            '<div class="spell-range">' + escapeHtml(spell.range) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="spell-desc">' + escapeHtml(spell.desc) + '</div>' +
+        (spell.note ? '<div class="spell-note">' + escapeHtml(spell.note) + '</div>' : '') +
+        (spell.alwaysAvailable ? '<div class="always-tag">Toujours disponible</div>' : '') +
+      '</div>';
+    }).join('');
+
+    scroll.innerHTML = '<div class="section-block">' +
+      '<div class="section-title"><span>' + escapeHtml(section.title) + '</span><span class="del-section" id="delSectionBtn">supprimer ce niveau</span></div>' +
+      '<div class="section-cards">' + (rowsHtml || '<div class="empty-hint">Aucun sort. Utilise le bouton + pour en ajouter.</div>') + '</div>' +
+    '</div>';
+
+    scroll.querySelectorAll('.spell-row').forEach(function (el) {
+      el.addEventListener('click', function () { openSpellModal(parseInt(el.dataset.index, 10)); });
+    });
+    var delBtn = document.getElementById('delSectionBtn');
+    if (delBtn) delBtn.addEventListener('click', function (e) { e.stopPropagation(); deleteCurrentSection(); });
+  }
+
+  var alwaysField = document.getElementById('alwaysAvailableField');
+  alwaysField.style.display = (ui.activeChar === 'deneor' && ui.activeLevel !== 'classe') ? 'block' : 'none';
+}
+
+// ---- spell modal ----
+function openSpellModal(index) {
+  var section = sectionByLevel(ui.activeLevel);
+  if (!section) { showToast('Cree d\'abord un niveau', true); return; }
+  var form = document.getElementById('spellForm');
+  form.reset();
+  document.getElementById('sp_index').value = (index === undefined || index === null) ? '' : index;
+  document.getElementById('spellModalTitle').textContent = (index === undefined || index === null) ? 'Ajouter un sort' : 'Modifier le sort';
+  document.getElementById('btnDeleteSpell').style.display = (index === undefined || index === null) ? 'none' : 'inline-block';
+  document.getElementById('alwaysAvailableField').style.display = (ui.activeChar === 'deneor' && ui.activeLevel !== 'classe') ? 'block' : 'none';
+
+  if (index !== undefined && index !== null) {
+    var spell = section.spells[index];
+    document.getElementById('sp_name').value = spell.name || '';
+    document.getElementById('sp_type').value = spell.type || '';
+    document.getElementById('sp_range').value = spell.range || '';
+    document.getElementById('sp_always').checked = !!spell.alwaysAvailable;
+    document.getElementById('sp_desc').value = spell.desc || '';
+    document.getElementById('sp_note').value = spell.note || '';
+  }
+  document.getElementById('spellModalBackdrop').classList.add('open');
+  document.getElementById('sp_name').focus();
+}
+function closeSpellModal() { document.getElementById('spellModalBackdrop').classList.remove('open'); }
+
+document.getElementById('spellForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var section = sectionByLevel(ui.activeLevel);
+  if (!section) return;
+  var idxRaw = document.getElementById('sp_index').value;
+  var spell = {
+    name: document.getElementById('sp_name').value.trim(),
+    type: document.getElementById('sp_type').value.trim(),
+    range: document.getElementById('sp_range').value.trim(),
+    desc: document.getElementById('sp_desc').value.trim(),
+    note: document.getElementById('sp_note').value.trim()
+  };
+  if (ui.activeChar === 'deneor' && ui.activeLevel !== 'classe' && document.getElementById('sp_always').checked) {
+    spell.alwaysAvailable = true;
+  }
+  if (idxRaw === '') {
+    section.spells.push(spell);
+  } else {
+    section.spells[parseInt(idxRaw, 10)] = spell;
+  }
+  saveState();
+  closeSpellModal();
+  render();
+  showToast(idxRaw === '' ? 'Sort ajoute' : 'Sort mis a jour');
+});
+
+document.getElementById('btnDeleteSpell').addEventListener('click', function () {
+  var section = sectionByLevel(ui.activeLevel);
+  var idxRaw = document.getElementById('sp_index').value;
+  if (!section || idxRaw === '') return;
+  var spell = section.spells[parseInt(idxRaw, 10)];
+  if (!confirm('Supprimer "' + spell.name + '" ?')) return;
+  section.spells.splice(parseInt(idxRaw, 10), 1);
+  saveState();
+  closeSpellModal();
+  render();
+  showToast('Sort supprime');
+});
+
+document.getElementById('btnCancelSpell').addEventListener('click', closeSpellModal);
+document.getElementById('fabAdd').addEventListener('click', function () { openSpellModal(null); });
+document.getElementById('spellModalBackdrop').addEventListener('click', function (e) { if (e.target.id === 'spellModalBackdrop') closeSpellModal(); });
+
+// ---- level modal ----
+function renderLevelList() {
+  var sections = activeSections();
+  var order = levelOrder(sections);
+  var list = document.getElementById('levelList');
+  if (!order.length) { list.innerHTML = '<div class="empty-hint">Aucun niveau pour ce personnage.</div>'; return; }
+  list.innerHTML = order.map(function (lvl) {
+    var s = sectionByLevel(lvl);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:rgba(var(--border-tint),0.08);border-radius:6px;">' +
+      '<div style="font-size:13px;"><b>' + escapeHtml(s.title) + '</b> <span style="color:var(--text-dim);font-size:11px;">(' + s.spells.length + ' sort' + (s.spells.length > 1 ? 's' : '') + ')</span></div>' +
+      '<span class="btn small danger" data-del-level="' + lvl + '">Supprimer</span>' +
+    '</div>';
+  }).join('');
+  list.querySelectorAll('[data-del-level]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var lvl = el.dataset.delLevel === 'classe' ? 'classe' : parseInt(el.dataset.delLevel, 10);
+      var s = sectionByLevel(lvl);
+      if (!confirm('Supprimer le niveau "' + s.title + '" et ses ' + s.spells.length + ' sort(s) ?')) return;
+      state[ui.activeChar] = activeSections().filter(function (x) { return x.level !== lvl; });
+      saveState();
+      renderLevelList();
+      render();
+      showToast('Niveau supprime');
+    });
+  });
+}
+
+function openLevelModal() {
+  renderLevelList();
+  document.getElementById('levelModalBackdrop').classList.add('open');
+}
+document.getElementById('btnAddLevel').addEventListener('click', openLevelModal);
+document.getElementById('btnCloseLevelModal').addEventListener('click', function () { document.getElementById('levelModalBackdrop').classList.remove('open'); });
+document.getElementById('levelModalBackdrop').addEventListener('click', function (e) { if (e.target.id === 'levelModalBackdrop') document.getElementById('levelModalBackdrop').classList.remove('open'); });
+
+document.getElementById('lv_level').addEventListener('change', function () {
+  var v = this.value;
+  var titleEl = document.getElementById('lv_title');
+  var tagEl = document.getElementById('lv_tag');
+  if (v === 'classe') { titleEl.value = 'Capacités de classe et dons'; tagEl.value = 'Classe'; }
+  else if (v === '0') { titleEl.value = 'Sorts mineurs (niveau 0)'; tagEl.value = 'Niv. 0'; }
+  else { titleEl.value = 'Niveau ' + v; tagEl.value = 'Niv. ' + v; }
+});
+
+document.getElementById('btnAddLevelConfirm').addEventListener('click', function () {
+  var v = document.getElementById('lv_level').value;
+  var level = v === 'classe' ? 'classe' : parseInt(v, 10);
+  if (sectionByLevel(level)) { showToast('Ce niveau existe deja', true); return; }
+  var title = document.getElementById('lv_title').value.trim() || ('Niveau ' + v);
+  var tag = document.getElementById('lv_tag').value.trim() || ('Niv. ' + v);
+  activeSections().push({ title: title, levelTag: tag, level: level, spells: [] });
+  saveState();
+  ui.activeLevel = level;
+  renderLevelList();
+  render();
+  showToast('Niveau ajoute');
+});
+
+function deleteCurrentSection() {
+  var section = sectionByLevel(ui.activeLevel);
+  if (!section) return;
+  if (!confirm('Supprimer le niveau "' + section.title + '" et ses ' + section.spells.length + ' sort(s) ?')) return;
+  state[ui.activeChar] = activeSections().filter(function (x) { return x.level !== ui.activeLevel; });
+  saveState();
+  ui.activeLevel = null;
+  render();
+  showToast('Niveau supprime');
+}
+
+// ---- reset ----
+document.getElementById('btnReset').addEventListener('click', function () {
+  if (!confirm('Reinitialiser tes modifications et repartir des donnees actuellement en ligne dans Cantrip ? Cette action efface tes ajouts non exportes.')) return;
+  state = cloneSeed();
+  saveState();
+  ui.activeLevel = null;
+  render();
+  showToast('Donnees reinitialisees');
+});
+
+// ---- export ----
+function jsStr(s) {
+  return '"' + String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+function spellToJsLine(spell) {
+  var parts = [];
+  parts.push('name: ' + jsStr(spell.name));
+  parts.push('type: ' + jsStr(spell.type));
+  parts.push('range: ' + jsStr(spell.range));
+  if (spell.alwaysAvailable) parts.push('alwaysAvailable: true');
+  parts.push('desc: ' + jsStr(spell.desc));
+  if (spell.note) parts.push('note: ' + jsStr(spell.note));
+  return '{ ' + parts.join(', ') + ' }';
+}
+function sectionToJs(section) {
+  var levelLit = section.level === 'classe' ? "'classe'" : section.level;
+  var spellsLit = section.spells.map(function (s) { return '          ' + spellToJsLine(s); }).join(',\n');
+  return '      {\n        title: ' + jsStr(section.title) + ',\n        levelTag: ' + jsStr(section.levelTag) + ',\n        level: ' + levelLit + ',\n        spells: [\n' + spellsLit + '\n        ]\n      }';
+}
+function exportCharCode(c) {
+  var varName = c === 'deneor' ? 'DENEOR_SPELLBOOK' : 'SPELLBOOK';
+  var sections = state[c];
+  var order = levelOrder(sections);
+  var ordered = order.map(function (lvl) { return sections.filter(function (s) { return s.level === lvl; })[0]; });
+  var sectionsLit = ordered.map(sectionToJs).join(',\n');
+  return '  var ' + varName + ' = {\n    sections: [\n' + sectionsLit + '\n    ]\n  };';
+}
+
+var exportModalChar = 'calix';
+function renderExportArea() {
+  document.getElementById('exportArea').value = exportCharCode(exportModalChar);
+  document.getElementById('expTabCalix').className = 'btn' + (exportModalChar === 'calix' ? ' primary' : '');
+  document.getElementById('expTabDeneor').className = 'btn' + (exportModalChar === 'deneor' ? ' primary' : '');
+}
+document.getElementById('expTabCalix').addEventListener('click', function () { exportModalChar = 'calix'; renderExportArea(); });
+document.getElementById('expTabDeneor').addEventListener('click', function () { exportModalChar = 'deneor'; renderExportArea(); });
+document.getElementById('btnCloseExport').addEventListener('click', function () { document.getElementById('exportModalBackdrop').classList.remove('open'); });
+document.getElementById('exportModalBackdrop').addEventListener('click', function (e) { if (e.target.id === 'exportModalBackdrop') document.getElementById('exportModalBackdrop').classList.remove('open'); });
+document.getElementById('btnCopyExport').addEventListener('click', function () {
+  var area = document.getElementById('exportArea');
+  area.select();
+  try {
+    navigator.clipboard.writeText(area.value).then(function () { showToast('Code copie'); }).catch(function () { document.execCommand('copy'); showToast('Code copie'); });
+  } catch (e) {
+    document.execCommand('copy');
+    showToast('Code copie');
+  }
+});
+document.getElementById('btnDownloadExport').addEventListener('click', function () {
+  var blob = new Blob([document.getElementById('exportArea').value], { type: 'text/javascript' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (exportModalChar === 'deneor' ? 'deneor_spellbook' : 'spellbook') + '.js';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ---- toast ----
+function showToast(msg, isErr) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  t.style.background = isErr ? '#b91c1c' : '';
+  setTimeout(function () { t.className = 'toast'; }, 2200);
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    document.getElementById('spellModalBackdrop').classList.remove('open');
+    document.getElementById('levelModalBackdrop').classList.remove('open');
+    document.getElementById('exportModalBackdrop').classList.remove('open');
+  }
+});
+
+// ---- export / import du fichier de travail (JSON) ----
+function exportJSONFile() {
+  var data = { calix: state.calix, deneor: state.deneor };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var d = new Date();
+  var stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  a.href = url;
+  a.download = 'cantrip-sorts-' + stamp + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Fichier exporte');
+}
+
+function importJSONFile(file) {
+  var reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      var data = JSON.parse(evt.target.result);
+      if (!data || !Array.isArray(data.calix) || !Array.isArray(data.deneor)) {
+        showToast('Fichier invalide (structure calix/deneor attendue)', true);
+        return;
+      }
+      state = { calix: data.calix, deneor: data.deneor };
+      saveState();
+      ui.activeLevel = null;
+      render();
+      showToast('Fichier importe');
+    } catch (e) {
+      showToast('Fichier JSON illisible', true);
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('btnExportFile').addEventListener('click', exportJSONFile);
+document.getElementById('btnImportFile').addEventListener('click', function () {
+  document.getElementById('importFileInput').click();
+});
+document.getElementById('importFileInput').addEventListener('change', function (e) {
+  var file = e.target.files[0];
+  if (file) importJSONFile(file);
+  e.target.value = '';
+});
+document.getElementById('btnGenCode').addEventListener('click', function () {
+  exportModalChar = ui.activeChar;
+  renderExportArea();
+  document.getElementById('exportModalBackdrop').classList.add('open');
+});
+
+state = loadState();
+render();
+</script>
+</body>
+</html>
