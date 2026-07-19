@@ -182,6 +182,8 @@
     return resource;
   }
 
+  var DAMAGE_TYPES = ['Tranchant', 'Perforant', 'Contondant'];
+
   function makeAttack() {
     return { id: generateId(), name: 'Arme', melee: true, rangeMeters: 0, attackBonus: 0, damageDice: '', damageBonus: 0, damageType: '' };
   }
@@ -1314,7 +1316,10 @@
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:4px">' +
           '<label style="font-size:10px;color:var(--text-muted)">Type de dégâts</label>' +
-          '<input type="text" value="' + escapeHtml(atk.damageType) + '" placeholder="Perforant" data-action="attack-damage-type" data-id="' + atk.id + '" ' + (locked ? 'disabled' : '') + ' style="height:34px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;padding:0 10px;box-sizing:border-box"/>' +
+          '<select data-action="attack-damage-type" data-id="' + atk.id + '" ' + (locked ? 'disabled' : '') + ' style="height:34px;background:var(--bg-deep);border:1px solid rgba(var(--border-tint),0.24);border-radius:8px;color:var(--text-main);font-size:13px;padding:0 10px;box-sizing:border-box">' +
+            '<option value=""' + (atk.damageType === '' ? ' selected' : '') + '>—</option>' +
+            DAMAGE_TYPES.map(function (dt) { return '<option value="' + dt + '"' + (atk.damageType === dt ? ' selected' : '') + '>' + dt + '</option>'; }).join('') +
+          '</select>' +
         '</div>' +
         '</div>';
     }).join('');
@@ -1680,7 +1685,7 @@
     });
 
     app.querySelectorAll('[data-action="attack-damage-type"]').forEach(function (el) {
-      el.addEventListener('input', function () {
+      el.addEventListener('change', function () {
         var id = el.getAttribute('data-id');
         var atk = settingsCharacterProfile().attacks.find(function (x) { return x.id === id; });
         if (atk) atk.damageType = el.value;
