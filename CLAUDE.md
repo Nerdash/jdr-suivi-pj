@@ -356,9 +356,9 @@ force le retour du bloc Caractéristiques et le masquage de la croix de réiniti
 ## Service Worker (`sw.js`)
 
 Stratégie réseau d'abord avec fallback cache (pas de stale-while-revalidate). `CACHE_NAME` est
-versionné (`cantrip-v33` au 2026-07-12) — **incrémenter cette constante à chaque changement
-significatif des assets statiques** (`index.html`, `manifest.json`, `icon.svg`,
-`characters/*.jpg|png`) pour forcer l'invalidation du cache côté client.
+versionné (`cantrip-vNN`, voir `sw.js` pour la valeur actuelle) — **incrémenter cette constante
+à chaque changement significatif des assets statiques** (`index.html`, `manifest.json`,
+`icon.svg`, `characters/*.jpg|png`) pour forcer l'invalidation du cache côté client.
 
 ## Déploiement
 

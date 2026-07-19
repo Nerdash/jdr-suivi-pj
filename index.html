@@ -23,7 +23,6 @@
     --bg-nav: #e6d4a2;
     --border-strong: #8a6a3a;
     --border-tint: 122,90,42;
-    --border-card: rgba(var(--border-tint), 0.2);
     --text-main: #3a2a15;
     --text-gold: #8a5a16;
     --text-label: #7a6440;
@@ -42,7 +41,6 @@
     --bg-texture: rgba(90,60,20,0.035);
     --checkbox-border-idle: rgba(58,42,21,0.3);
     --ink-bright: #efe4cf;
-    --ink-dark: #171209;
   }
   :root[data-theme="deneor"] {
     --bg-gradient-1: #1a3327;
@@ -106,7 +104,6 @@
   .badge-available { background: rgba(34,197,94,0.16); border: 1px solid rgba(34,197,94,0.5); color: var(--accent-green-text); font-weight: 700; }
   .toggle-track { width: 40px; height: 24px; border-radius: 12px; position: relative; cursor: pointer; flex: none; transition: background 150ms; }
   .toggle-knob { width: 18px; height: 18px; border-radius: 9px; background: var(--ink-bright); position: absolute; top: 3px; transition: left 150ms; }
-  .icon-btn { width: 44px; height: 44px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border-card); display: flex; align-items: center; justify-content: center; color: var(--text-label); cursor: pointer; flex: none; }
   input:disabled { opacity: 0.45; }
   @keyframes concentration-pulse {
     0%, 100% { box-shadow: inset 0 0 0 0 rgba(167,139,250,0); }
@@ -538,9 +535,6 @@
     }
     return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" fill="currentColor"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="var(--bg-nav)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
-  function iconResized(svg, size) {
-    return svg.replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"');
-  }
   function iconArrowLeft() {
     return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>';
   }
@@ -706,14 +700,21 @@
     return names;
   }
 
+  // Styles de badge par préfixe de type de sort — source unique aussi pour les chips de filtre
+  // (GRIMOIRE_FILTERS / PREPARE_FILTERS ci-dessous), qui reprenaient ces mêmes couleurs en dur.
+  var SPELL_TYPE_STYLES = {
+    ACTION: 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);',
+    BONUS: 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);',
+    'RÉACTION': 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);',
+    RITUEL: 'background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.45);color:var(--accent-purple-text);',
+    PASSIF: 'background:rgba(148,163,184,0.16);border:1px solid rgba(148,163,184,0.45);color:var(--accent-gray-text);'
+  };
+  var SPELL_TYPE_STYLE_DEFAULT = 'background:rgba(var(--border-tint),0.16);border:1px solid rgba(var(--border-tint),0.45);color:var(--accent-gold-badge-text);';
+
   function spellBadgeStyle(type) {
     var t = type.toUpperCase();
-    if (t.indexOf('BONUS') === 0) return 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);';
-    if (t.indexOf('RÉACTION') === 0) return 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);';
-    if (t.indexOf('RITUEL') === 0) return 'background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.45);color:var(--accent-purple-text);';
-    if (t.indexOf('PASSIF') === 0) return 'background:rgba(148,163,184,0.16);border:1px solid rgba(148,163,184,0.45);color:var(--accent-gray-text);';
-    if (t.indexOf('ACTION') === 0) return 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);';
-    return 'background:rgba(var(--border-tint),0.16);border:1px solid rgba(var(--border-tint),0.45);color:var(--accent-gold-badge-text);';
+    var prefix = Object.keys(SPELL_TYPE_STYLES).filter(function (p) { return t.indexOf(p) === 0; })[0];
+    return prefix ? SPELL_TYPE_STYLES[prefix] : SPELL_TYPE_STYLE_DEFAULT;
   }
 
   // ---- render ----
@@ -957,9 +958,9 @@
   }
 
   var GRIMOIRE_FILTERS = [
-    { key: 'action', label: 'Action', prefix: 'ACTION', style: 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);' },
-    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);' },
-    { key: 'reaction', label: 'Réaction', prefix: 'RÉACTION', style: 'background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.45);color:var(--accent-red-text);' }
+    { key: 'action', label: 'Action', prefix: 'ACTION', style: SPELL_TYPE_STYLES.ACTION },
+    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: SPELL_TYPE_STYLES.BONUS },
+    { key: 'reaction', label: 'Réaction', prefix: 'RÉACTION', style: SPELL_TYPE_STYLES['RÉACTION'] }
   ];
 
   function spellMatchesGrimoireFilters(spell) {
@@ -974,8 +975,8 @@
   // n'apparaissent que dans le Grimoire normal). "Préparé" est un filtre à part : il ne teste pas
   // le type du sort mais sa présence dans le brouillon en cours (ui.draftPreparedSpells).
   var PREPARE_FILTERS = [
-    { key: 'action', label: 'Action', prefix: 'ACTION', style: 'background:rgba(125,211,252,0.16);border:1px solid rgba(125,211,252,0.45);color:var(--accent-blue-text);' },
-    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: 'background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);color:var(--accent-green-text);' },
+    { key: 'action', label: 'Action', prefix: 'ACTION', style: SPELL_TYPE_STYLES.ACTION },
+    { key: 'bonus', label: 'Bonus', prefix: 'BONUS', style: SPELL_TYPE_STYLES.BONUS },
     { key: 'prepared', label: 'Préparé', style: 'background:rgba(34,197,94,0.28);border:1px solid #22c55e;color:var(--accent-green-text);' }
   ];
 
@@ -1131,7 +1132,7 @@
       '<div style="display:flex;flex-direction:column;height:100%;gap:12px">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none">' +
           '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div data-action="nav" data-view="' + (ui.grimoirePrepareBackView || 'grimoire') + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main)">' + iconArrowLeft() + '</div>' +
+            navBackButtonHtml(ui.grimoirePrepareBackView || 'grimoire') +
             '<div style="font-size:19px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">Préparation de sorts</div>' +
           '</div>' +
           '<div style="flex:none;min-width:38px;height:38px;background:var(--border-strong);color:var(--ink-bright);font-weight:700;font-size:19px;padding:0 10px;border-radius:19px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.3)">' + preparedCount + '</div>' +
@@ -1172,9 +1173,13 @@
     );
   }
 
+  function navBackButtonHtml(view) {
+    return '<div data-action="nav" data-view="' + view + '" style="flex:none;width:36px;height:36px;border-radius:8px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main)">' + iconArrowLeft() + '</div>';
+  }
+
   function renderSettingsHeader(title) {
     return '<div style="display:flex;align-items:center;gap:10px;flex:none">' +
-      '<div data-action="nav" data-view="settings" style="flex:none;width:36px;height:36px;border-radius:8px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-main)">' + iconArrowLeft() + '</div>' +
+      navBackButtonHtml('settings') +
       '<div style="font-size:21px;font-weight:700;letter-spacing:0.3px" class="font-cinzel">' + title + '</div>' +
     '</div>';
   }
@@ -1394,7 +1399,7 @@
 
     return (
       '<div style="display:flex;flex-direction:column;height:100%;gap:14px">' +
-        renderSettingsHeader('Charger un personnage', 'settings-app') +
+        renderSettingsHeader('Charger un personnage') +
         cardHtml +
         navArrowsHtml +
         '<div style="display:flex;flex-direction:column;gap:10px;flex:none">' +
@@ -2116,8 +2121,6 @@
 
       default: break;
     }
-
-    if (action === 'hp-max-click') startEditMax();
   }
 
   // hp max / temp click-to-edit triggers via delegated ids (added after render since dynamic)
@@ -2168,8 +2171,6 @@
     window.visualViewport.addEventListener('resize', applyVisualViewport);
     applyVisualViewport();
   }
-
-  function startEditMax() { ui.editingMax = true; render(); }
 
   function applyDamage() {
     var hp = profile().hp;
