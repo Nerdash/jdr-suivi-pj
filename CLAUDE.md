@@ -42,9 +42,20 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
 1. **Tracker** (page par défaut) — portrait du personnage actif (`state.characters[activeCharacterId]
    .portrait`, cercle 38px) à gauche du nom, ligne de 3 tuiles CA / Initiative /
    Déplacement (`profile.combatStats: { ac, initiative, speed }`, lecture seule, éditées dans
-   Paramètres), PV (bloc fusionné avec bouclier temporaire), emplacements de sorts groupés par
+   Paramètres), PV (bloc fusionné avec bouclier temporaire), juste en dessous un bloc "Attaque"
+   (armes uniquement, voir ci-dessous), emplacements de sorts groupés par
    niveau en badges circulaires, ressource(s) de classe (un bloc de badges par ressource
    configurée, voir Paramètres ci-dessous), bouton "Repos" unique.
+   **Bloc Attaque** (`profile.attacks`, tableau 0..n d'objets `{ id, name, melee, rangeMeters,
+   attackBonus, damageDice, damageBonus, damageType }`, lecture seule ici — édité dans
+   Paramétrer le Personnage) — masqué entièrement si `attacks` est vide (comme les ressources de
+   classe). Une ligne compacte par arme (`renderAttackRow()`) : icône épée (`iconSword()`) si
+   `melee`, sinon icône arc (`iconBow()`) suivie de la portée entre parenthèses si
+   `rangeMeters > 0` ; puis un réticule (`ICON_TARGET`) juste avant le bonus au toucher
+   (`attackBonus`, signé, coloré `--accent-blue-text`) ; à droite, les dégâts (`damageDice` +
+   `damageBonus` s'il est non nul) et le type (`damageType`), séparés par un point médian,
+   tronqués en ellipsis CSS si trop longs plutôt que d'être abrégés en JS. Uniquement des armes :
+   pas de notion de sort dans ce bloc (choix explicite — voir Décisions de conception).
    Deux marqueurs toggle (`profile.concentration`, `profile.inspiration`, booléens indépendants)
    alignés à droite sur la ligne du nom du personnage, dans l'ordre inspiration puis
    concentration : point d'inspiration (icône étoile
@@ -164,10 +175,10 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    personnage, pas de changement de la structure de `state`).
    - **Paramétrer le Personnage** (`renderSettingsCharacter()`) — nom du personnage,
      CA/Initiative/Déplacement (`data-action="combat-input"`, Initiative signée via
-     `formatSigned()`, CA/Déplacement non signés), config des emplacements de sorts et des
-     ressources de classe, saisie des caractéristiques/compétences. Contenu en flux continu, sans
-     titres de sous-section, séparé par de simples `<hr>` légers (`SETTINGS_SEPARATOR`) entre les
-     blocs.
+     `formatSigned()`, CA/Déplacement non signés), liste d'attaques (voir ci-dessous), config des
+     emplacements de sorts et des ressources de classe, saisie des caractéristiques/compétences.
+     Contenu en flux continu, sans titres de sous-section, séparé par de simples `<hr>` légers
+     (`SETTINGS_SEPARATOR`) entre les blocs.
      **Verrou d'édition** : la page démarre verrouillée (lecture seule, tous les champs `disabled`
      ou `pointer-events:none`, valeurs affichées = `profile()`) avec un bouton "Modifier" en bas
      (hors zone de scroll, `flex:none`, comme le "Repos" du Tracker). Le tap dessus
@@ -208,6 +219,20 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
      existe dans le tableau ou n'existe pas. La modale Repos réinitialise chaque ressource selon son
      type (`used[]` à `false` pour `badges`, `current = max` pour `counter`) d'un coup (case
      "Restaurer les ressources de classe").
+     **Attaque(s)** : `profile.attacks` est un tableau (0..n éléments) d'objets `{ id, name,
+     melee, rangeMeters, attackBonus, damageDice, damageBonus, damageType }`, créés via
+     `makeAttack()`/`generateId()`, réordonnables (`data-action="move-attack-up"`/`"-down"`,
+     même pattern que les ressources de classe) et supprimables individuellement
+     (`data-action="remove-attack"`). Chaque ligne est une petite carte multi-champs (pas une
+     simple ligne à un champ comme les ressources de classe, faute de place) : nom, toggle
+     Mêlée/Distance (`data-action="toggle-attack-melee"`, pilote l'icône épée/arc du Tracker),
+     portée en mètres (`rangeMeters`, champ désactivé tant que Mêlée est sélectionné — même
+     pattern que les champs Max désactivés hors contexte), bonus au toucher signé
+     (`attackBonus`), dégâts en deux champs (`damageDice` texte libre type "1d8" + `damageBonus`
+     signé), et type de dégâts (`damageType`, texte libre). Un seul bouton "+ Ajouter une arme"
+     (`data-action="add-attack"`). Volontairement **armes uniquement** : pas de notion de sort
+     dans ce système (écarté explicitement lors de la conception, voir Décisions de conception) —
+     ne pas réintroduire un axe "sort" sans en rediscuter avec l'utilisateur.
      `sanitizeProfile()` migre automatiquement l'ancien format mono-ressource
      (`profile.classResource: { enabled, label, max, used }`) vers `classResources` — appliqué à
      chaque chargement, aussi bien au profil actif (`state.profiles[]`) qu'aux instantanés
@@ -312,6 +337,12 @@ révisé"). En cas de divergence, les arbitrages suivants ont été retenus :
 - Les cases à cocher de la modale Repos sont toutes décochées par défaut à chaque ouverture.
 - Les champs "Max" (sorts, ressource de classe) sont désactivés visuellement tant que le niveau
   correspondant n'est pas activé.
+- **Bloc Attaque (`profile.attacks`) : armes uniquement, pas de sorts.** Écarté explicitement en
+  cours de conception (2026-07-19) après plusieurs itérations avec l'utilisateur — un premier jet
+  incluait un bonus de sort distinct et une icône dédiée aux attaques de sort, simplifié à la
+  demande pour ne garder que les armes (mêlée/distance). Le bonus au toucher est propre à chaque
+  arme (pas un bonus unique partagé), car deux armes peuvent avoir des bonus différents (arme
+  magique, don...).
 - Tout `<input type="text">` voit son contenu présélectionné au focus (listener délégué global
   `focusin` sur `#app`, tape directement pour remplacer la valeur), **sauf** le champ de
   recherche des compétences (`#statsSearchInput`) qui reste un filtre en direct.
