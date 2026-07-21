@@ -100,6 +100,14 @@
   .hscroll { scrollbar-width: none; -ms-overflow-style: none; touch-action: pan-x pan-y; }
   .hscroll::-webkit-scrollbar { display: none; }
   [data-scroll-root] { -webkit-overflow-scrolling: touch; }
+  /* Sur tactile, un doigt qui glisse en diagonale sur une rangée .hscroll peut encore être
+     capté par son propre scroll horizontal au lieu de faire défiler la page verticalement,
+     même avec touch-action:pan-x pan-y (arbitrage du geste peu fiable selon les navigateurs).
+     On supprime l'ambiguïté en repassant ces rangées en habillage (wrap) sur pointeur grossier
+     (doigt) : plus de second axe de scroll imbriqué, tout redevient un simple scroll vertical. */
+  @media (pointer: coarse) {
+    .hscroll { flex-wrap: wrap; overflow-x: visible; }
+  }
   .badge { flex: none; width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; user-select: none; }
   .badge-used { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.45); color: var(--accent-red-text); font-weight: 600; }
   .badge-available { background: rgba(34,197,94,0.16); border: 1px solid rgba(34,197,94,0.5); color: var(--accent-green-text); font-weight: 700; }
