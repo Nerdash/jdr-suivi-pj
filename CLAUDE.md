@@ -31,7 +31,7 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
   Voir `ui.view` pour la page courante.
 - `render()` : dispatch vers `renderTracker()` / `renderStats()` / `renderGrimoire()` /
   `renderSettings()` (menu Paramètres) / `renderSettingsCharacter()` / `renderSettingsGrimoire()` /
-  `renderSettingsApp()` / `renderSettingsLoadCharacter()` selon `ui.view`, puis ajoute
+  `renderSettingsLoadCharacter()` selon `ui.view`, puis ajoute
   `renderBottomNav()`. Chaque page occupe toute la hauteur disponible (`height:100%`, pas de
   scroll de la page globale — seuls les conteneurs `[data-scroll-root]` scrollent en interne).
 - `bindEvents()` : re-attache tous les event listeners après chaque re-render (délégation via
@@ -164,15 +164,16 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
    `state.activeCharacterId`), et le bouton "Se reposer et préparer des sorts" de la modale Repos
    (Deneor uniquement, `confirmRestAndPrepare()` — factorisé avec `confirmRest()` via
    `applyRestChecks()` commun).
-4. **Paramètres** — depuis juillet 2026, `renderSettings()` n'affiche plus qu'un menu de trois
-   boutons (`data-action="nav"`, réutilise le pattern générique de navigation) qui renvoient
-   chacun vers une sous-page dédiée. Chaque sous-page a son propre `view` (`settings-character` /
-   `settings-grimoire` / `settings-app`) et affiche en haut un bouton retour
-   (`renderSettingsHeader()`) qui repositionne `ui.view = 'settings'` (retour au menu, pas au
-   Tracker). Dans la barre de navigation basse, l'onglet Paramètres reste en surbrillance tant
-   que `ui.view` commence par `"settings"` (menu ou n'importe quelle sous-page). Pas de
-   multi-personnage à ce stade : cette restructuration reste mono-profil (pas de sélecteur de
-   personnage, pas de changement de la structure de `state`).
+4. **Paramètres** — `renderSettings()` affiche un menu de trois boutons (`data-action="nav"`,
+   réutilise le pattern générique de navigation) qui renvoient chacun vers une sous-page dédiée.
+   Chaque sous-page a son propre `view` (`settings-character` / `settings-grimoire` /
+   `settings-load-character`) et affiche en haut un bouton retour (`renderSettingsHeader()`) qui
+   repositionne `ui.view = 'settings'` (retour au menu, pas au Tracker). Dans la barre de
+   navigation basse, l'onglet Paramètres reste en surbrillance tant que `ui.view` commence par
+   `"settings"` (menu ou n'importe quelle sous-page). Le troisième bouton du menu, "Charger un
+   personnage", renvoie directement à `renderSettingsLoadCharacter()` (voir section Personnages
+   ci-dessous) — il n'y a plus de niveau intermédiaire "Paramétrer l'application" depuis juillet
+   2026 (l'écran ne servait plus qu'à ça après le retrait de l'export/import JSON, voir plus bas).
    - **Paramétrer le Personnage** (`renderSettingsCharacter()`) — nom du personnage,
      CA/Initiative/Déplacement (`data-action="combat-input"`, Initiative signée via
      `formatSigned()`, CA/Déplacement non signés), liste d'attaques (voir ci-dessous), config des
@@ -242,12 +243,9 @@ réécriture complète de `innerHTML` à chaque changement (pas de diffing, pas 
      emplacement UI "à venir" pour un futur sélecteur connus/préparés côté Calix — non développé).
      Pour Deneor, affiche un résumé du système de préparation et un bouton "Préparer mes sorts"
      vers `renderGrimoirePrepare()` (voir section Grimoire plus haut).
-   - **Paramétrer l'application** (`renderSettingsApp()`, volontairement pas nommée "profil" —
-     ce terme désigne déjà le personnage, `state.profile`/`state.profiles[]`) — ne contient plus
-     qu'une rubrique "Sauvegarde" avec un bouton "Charger un personnage" (`data-action="nav"
-     data-view="settings-load-character"`), qui donne accès à l'export/import JSON par personnage,
-     voir section Personnages ci-dessous. Plus de toggle de thème ici : le thème suit désormais le
-     personnage chargé, voir section Thèmes (Calix / Deneor) plus bas.
+   - **Charger un personnage** (`renderSettingsLoadCharacter()`, troisième bouton du menu
+     Paramètres) — voir section Personnages ci-dessous. Pas de toggle de thème ici : le thème suit
+     le personnage chargé, voir section Thèmes (Calix / Deneor) plus bas.
 
 ## Personnages (Calix / Deneor)
 
@@ -265,7 +263,7 @@ Le profil réellement affiché/édité dans toute l'app reste `state.profiles[st
 `cloneDeep()`, un round-trip JSON) pour permettre un aller-retour explicite :
 
 - **Charger un personnage** (`renderSettingsLoadCharacter()`, `view: 'settings-load-character'`,
-  accessible depuis Paramétrer l'application) — carrousel plein écran (un personnage affiché à la
+  troisième bouton du menu Paramètres) — carrousel plein écran (un personnage affiché à la
   fois, portrait + nom + sous-titre + niveau si défini) avec navigation par flèches
   (`data-action="character-carousel-step"`) ou glissé façon "carte à jouer" sur
   `#characterCarouselSwipe`, implémenté via Pointer Events (souris **et** tactile, pas seulement
@@ -277,42 +275,16 @@ Le profil réellement affiché/édité dans toute l'app reste `state.profiles[st
   de feuilletage posé) ; en dessous du seuil, la carte revient se recaler avec la même transition
   de 360ms. Un badge "Personnage chargé" s'affiche sur la carte si `state.activeCharacterId`
   correspond au personnage affiché.
-  Deux boutons en bas :
-  - **Charger ce personnage** (`data-action="load-character"`) — toujours actif : clone
-    `character.savedProfile` dans `state.profiles[state.activeProfileIndex]`, bascule
-    `state.activeCharacterId`, applique le thème du personnage (`applyTheme()`, voir section
-    Thèmes (Calix / Deneor) plus bas), puis renvoie directement sur le Tracker (`ui.view =
-    'tracker'`).
-  - **Mettre à jour le personnage** (`data-action="update-character"`) — clone le profil de
-    travail actuel (`profile()`) dans `character.savedProfile`, ce qui en fait les nouvelles
-    valeurs par défaut de ce personnage. **Grisé/non cliquable** (`pointer-events:none`) tant que
-    ce personnage n'est pas celui actuellement chargé (`state.activeCharacterId !== charId`) —
-    impossible de mettre à jour un personnage sans l'avoir chargé au préalable. Une ligne d'aide
-    sous ce bouton est **toujours présente** (jamais conditionnelle) pour éviter un décalage
-    vertical pendant le swipe entre les deux personnages : "Chargez ce personnage avant de pouvoir
-    le mettre à jour." si non chargé, "Ce personnage est actuellement chargé." sinon.
-  Un message transitoire (`ui.characterNotice = { id, text }`, propre au personnage affiché dans
-  le carrousel) s'affiche après une mise à jour ou un import réussis ("Personnage mis à jour." /
-  "Personnage importé."), effacé au moindre changement d'onglet du carrousel.
-  Sous ces deux boutons, un bloc "Sauvegarde JSON de {nom}" propose l'export/import du **profil
-  complet** du personnage affiché (indépendamment de `state.activeCharacterId` — export/import
-  fonctionnent aussi bien sur le personnage chargé que sur l'autre) :
-  - **Exporter** (`data-action="export-character"`, fonction `exportCharacterJson()`) — sérialise
-    `character.savedProfile` en JSON (`JSON.stringify(..., null, 2)`) et déclenche un téléchargement
-    via un `<a download>` éphémère (`cantrip-{charId}.json`). Aucun appel réseau, tout se passe
-    côté client via un `Blob`/`URL.createObjectURL`.
-  - **Importer** (`data-action="import-character"`, fonction `importCharacterJson()`) — ouvre un
-    `<input type="file">` créé dynamiquement (pas de champ persistant dans le template, pour éviter
-    qu'il ne soit détruit au prochain re-render), lit le fichier via `FileReader`, `JSON.parse` puis
-    `sanitizeProfile()` (qui comble maintenant aussi `hp`, `characterName`, `concentration`,
-    `inspiration` et `spellLevels` en plus des champs déjà couverts, pour encaisser un JSON
-    partiel/corrompu — c'est le seul point d'entrée de données externes non fiables de l'app) avant
-    d'écraser `character.savedProfile`. Si le personnage importé est celui actuellement chargé
-    (`state.activeCharacterId === charId`), la copie de travail (`state.profiles[
-    state.activeProfileIndex]`) est aussi mise à jour immédiatement pour que le Tracker reflète le
-    changement sans repasser par "Charger ce personnage". En cas de JSON invalide, message d'erreur
-    transitoire (`ui.characterImportError`, même durée de vie que `ui.characterNotice`) sans toucher
-    à l'état existant.
+  Un seul bouton en bas, **Charger ce personnage** (`data-action="load-character"`) — toujours
+  actif : clone `character.savedProfile` dans `state.profiles[state.activeProfileIndex]`, bascule
+  `state.activeCharacterId`, applique le thème du personnage (`applyTheme()`, voir section
+  Thèmes (Calix / Deneor) plus bas), puis renvoie directement sur le Tracker (`ui.view =
+  'tracker'`).
+  Cet écran ne sert plus qu'à ça depuis juillet 2026 : "Mettre à jour le personnage" et le bloc
+  d'export/import JSON par personnage (`exportCharacterJson()`/`importCharacterJson()`,
+  `ui.characterNotice`/`ui.characterImportError`) ont été retirés — `character.savedProfile` de
+  chaque personnage n'est donc plus modifiable depuis l'app elle-même (seul l'outil admin,
+  voir plus bas, ou une édition directe du JSON dans `index.html` le permettent encore).
   Le Grimoire affiché dépend de `state.activeCharacterId` (`activeSpellbook()`, voir section
   Grimoire plus haut) : charger Deneor bascule sur `DENEOR_SPELLBOOK` et son système de
   préparation de sorts, indépendant du contenu de Calix.

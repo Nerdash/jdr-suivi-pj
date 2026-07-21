@@ -534,7 +534,7 @@
 
   // ---- ephemeral UI state (not persisted) ----
   var ui = {
-    view: 'tracker', // 'tracker' | 'stats' | 'grimoire' | 'grimoire-prepare' | 'settings' | 'settings-character' | 'settings-grimoire' | 'settings-app' | 'settings-load-character'
+    view: 'tracker', // 'tracker' | 'stats' | 'grimoire' | 'grimoire-prepare' | 'settings' | 'settings-character' | 'settings-grimoire' | 'settings-load-character'
     editingMax: false,
     editingTemp: false,
     shortRestOpen: false,
@@ -552,8 +552,6 @@
     disableLevelDialog: null, // { level: number } quand la confirmation de désactivation est ouverte
     characterCarouselIndex: 0, // index dans CHARACTER_ORDER, propre à l'écran "Charger un personnage"
     characterCarouselAnimDirection: null, // 'next' | 'prev' | null — consommé une fois par renderSettingsLoadCharacter()
-    characterNotice: null, // { id, text } — message transitoire (mise à jour / import réussis), propre au personnage affiché
-    characterImportError: null, // message d'erreur transitoire si le JSON importé est invalide
     goldModalOpen: false,
     goldModalDraft: 0, // copie de travail de profile().gold pendant la modale ; committée par "Valider"
     concentrationToast: null, // null | { leaving: bool } — toast "dégâts subis en concentration"
@@ -818,7 +816,6 @@
       case 'settings': return renderSettings();
       case 'settings-character': return renderSettingsCharacter();
       case 'settings-grimoire': return renderSettingsGrimoire();
-      case 'settings-app': return renderSettingsApp();
       case 'settings-load-character': return renderSettingsLoadCharacter();
       default: return renderTracker();
     }
@@ -1278,7 +1275,7 @@
     var menuItems = [
       { view: 'settings-character', label: 'Paramétrer le Personnage' },
       { view: 'settings-grimoire', label: 'Paramétrer le Grimoire' },
-      { view: 'settings-app', label: "Paramétrer l'application" }
+      { view: 'settings-load-character', label: 'Charger un personnage' }
     ];
     var itemsHtml = menuItems.map(function (item) {
       return '<div data-action="nav" data-view="' + item.view + '" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.2);border-radius:12px;cursor:pointer;color:var(--text-main)">' +
@@ -1524,20 +1521,6 @@
     );
   }
 
-  function renderSettingsApp() {
-    var saveBlock =
-        '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
-          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Sauvegarde</label>' +
-          '<div data-action="nav" data-view="settings-load-character" style="height:46px;border-radius:6px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Charger un personnage</div>' +
-        '</div>';
-
-    return (
-      '<div data-scroll-root style="display:flex;flex-direction:column;height:100%;gap:14px;overflow-y:auto">' +
-        renderSettingsHeader("Paramétrer l'application") +
-        saveBlock +
-      '</div>'
-    );
-  }
 
   function renderSettingsLoadCharacter() {
     var animDirection = ui.characterCarouselAnimDirection;
@@ -1548,7 +1531,6 @@
     var charId = CHARACTER_ORDER[idx];
     var character = state.characters[charId];
     var isActive = state.activeCharacterId === charId;
-    var updateDisabled = !isActive;
 
     var dotsHtml = CHARACTER_ORDER.map(function (id, i) {
       return '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === idx ? 'var(--text-gold)' : 'rgba(var(--border-tint),0.35)') + '"></div>';
@@ -1562,8 +1544,6 @@
           '<div style="font-size:13px;color:var(--text-muted)">' + escapeHtml(character.subtitle) + (typeof character.level === 'number' ? ' · Niveau ' + character.level : '') + '</div>' +
           (isActive ? '<div style="margin-top:4px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-gold);background:rgba(var(--border-tint),0.18);border:1px solid rgba(var(--border-tint),0.4);padding:3px 10px;border-radius:10px">Personnage chargé</div>' : '') +
         '</div>' +
-        (ui.characterNotice && ui.characterNotice.id === charId ? '<div style="font-size:12px;color:var(--accent-green-text)">' + escapeHtml(ui.characterNotice.text) + '</div>' : '') +
-        (ui.characterImportError ? '<div style="font-size:12px;color:#ef4444">' + escapeHtml(ui.characterImportError) + '</div>' : '') +
       '</div>';
 
     var navArrowsHtml =
@@ -1578,19 +1558,7 @@
         renderSettingsHeader('Charger un personnage') +
         cardHtml +
         navArrowsHtml +
-        '<div style="display:flex;flex-direction:column;gap:10px;flex:none">' +
-          '<div data-action="load-character" data-id="' + charId + '" style="height:48px;border-radius:10px;background:var(--border-strong);border:1px solid rgba(var(--border-tint),0.34);color:var(--ink-bright);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center" class="font-cinzel">Charger ce personnage</div>' +
-          '<div data-action="update-character" data-id="' + charId + '" style="height:44px;border-radius:10px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);color:' + (updateDisabled ? 'var(--text-dim)' : 'var(--text-main)') + ';font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;' + (updateDisabled ? 'opacity:0.45;pointer-events:none;' : 'cursor:pointer;') + '">Mettre à jour le personnage</div>' +
-          '<div style="font-size:11px;color:var(--text-dim);text-align:center">' + (updateDisabled ? 'Chargez ce personnage avant de pouvoir le mettre à jour.' : 'Ce personnage est actuellement chargé.') + '</div>' +
-        '</div>' +
-        SETTINGS_SEPARATOR +
-        '<div style="display:flex;flex-direction:column;gap:6px;flex:none">' +
-          '<label style="font-size:11px;color:var(--text-label);text-transform:uppercase;letter-spacing:0.06em">Sauvegarde JSON de ' + escapeHtml(character.name) + '</label>' +
-          '<div style="display:flex;gap:10px">' +
-            '<div data-action="export-character" data-id="' + charId + '" style="flex:1;height:44px;border-radius:10px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Exporter</div>' +
-            '<div data-action="import-character" data-id="' + charId + '" style="flex:1;height:44px;border-radius:10px;background:var(--bg-card);border:1px solid rgba(var(--border-tint),0.24);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center">Importer</div>' +
-          '</div>' +
-        '</div>' +
+        '<div data-action="load-character" data-id="' + charId + '" style="flex:none;height:48px;border-radius:10px;background:var(--border-strong);border:1px solid rgba(var(--border-tint),0.34);color:var(--ink-bright);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center" class="font-cinzel">Charger ce personnage</div>' +
       '</div>'
     );
   }
@@ -1999,59 +1967,7 @@
     if (newIdx === ui.characterCarouselIndex) return;
     ui.characterCarouselAnimDirection = delta > 0 ? 'next' : 'prev';
     ui.characterCarouselIndex = newIdx;
-    ui.characterNotice = null;
-    ui.characterImportError = null;
     render();
-  }
-
-  function exportCharacterJson(charId) {
-    var character = state.characters[charId];
-    if (!character) return;
-    var dataStr = JSON.stringify(character.savedProfile, null, 2);
-    var blob = new Blob([dataStr], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'cantrip-' + charId + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function importCharacterJson(charId) {
-    var input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json,.json';
-    input.style.display = 'none';
-    document.body.appendChild(input);
-    input.addEventListener('change', function () {
-      var file = input.files && input.files[0];
-      document.body.removeChild(input);
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function () {
-        try {
-          var parsed = JSON.parse(String(reader.result));
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
-          sanitizeProfile(parsed);
-          state.characters[charId].savedProfile = parsed;
-          if (state.activeCharacterId === charId) {
-            state.profiles[state.activeProfileIndex] = cloneDeep(parsed);
-          }
-          ui.characterImportError = null;
-          ui.characterNotice = { id: charId, text: 'Personnage importé.' };
-          saveState();
-          render();
-        } catch (e) {
-          ui.characterNotice = null;
-          ui.characterImportError = 'Fichier JSON invalide.';
-          render();
-        }
-      };
-      reader.readAsText(file);
-    });
-    input.click();
   }
 
   function onAction(e) {
@@ -2380,28 +2296,8 @@
         state.profiles[state.activeProfileIndex] = cloneDeep(characterToLoad.savedProfile);
         state.activeCharacterId = loadId;
         applyTheme();
-        ui.characterNotice = null;
-        ui.characterImportError = null;
         ui.view = 'tracker';
         saveState(); render();
-        break;
-      }
-      case 'update-character': {
-        var updateId = e.currentTarget.getAttribute('data-id');
-        if (state.activeCharacterId === updateId) {
-          state.characters[updateId].savedProfile = cloneDeep(profile());
-          ui.characterNotice = { id: updateId, text: 'Personnage mis à jour.' };
-          ui.characterImportError = null;
-          saveState(); render();
-        }
-        break;
-      }
-      case 'export-character': {
-        exportCharacterJson(e.currentTarget.getAttribute('data-id'));
-        break;
-      }
-      case 'import-character': {
-        importCharacterJson(e.currentTarget.getAttribute('data-id'));
         break;
       }
 
