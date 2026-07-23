@@ -1545,11 +1545,12 @@ function exportProfileCode(charId) {
 }
 
 // ---- toast ----
-function showToast(msg, isErr) {
+// kind : true (retro-compat, erreur) | 'success' (vert) | 'error' | undefined (neutre)
+function showToast(msg, kind) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show';
-  t.style.background = isErr ? '#b91c1c' : '';
+  t.style.background = (kind === true || kind === 'error') ? '#b91c1c' : (kind === 'success' ? '#157a3d' : '');
   setTimeout(function () { t.className = 'toast'; }, 2200);
 }
 
@@ -1721,7 +1722,7 @@ function driveLoadPersonnage() {
     state.profiles[charId] = entry;
     saveState();
     render();
-    showToast('Personnage charge depuis Drive');
+    showToast('Le personnage a été chargé avec succès.', 'success');
   }).catch(function (err) {
     showToast(err.message || 'Echec du chargement Drive', true);
   });
@@ -1736,7 +1737,7 @@ function driveSavePersonnage() {
     bdd[charId] = full;
     return bdd;
   }).then(function () {
-    showToast('Personnage sauvegarde sur Drive');
+    showToast('Le personnage a été sauvegardé avec succès.', 'success');
   }).catch(function (err) {
     showToast(err.message || 'Echec de la sauvegarde Drive', true);
   });
