@@ -173,27 +173,29 @@
   .concentration-toast-enter { animation: concentration-toast-in 320ms ease-out; }
   .concentration-toast-leave { animation: concentration-toast-out 320ms ease-in forwards; }
   @keyframes drive-toast-in {
-    from { transform: translateX(-50%) translateY(140%); opacity: 0; }
-    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    from { transform: translateY(140%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
   @keyframes drive-toast-out {
-    from { transform: translateX(-50%) translateY(0); opacity: 1; }
-    to { transform: translateX(-50%) translateY(140%); opacity: 0; }
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(140%); opacity: 0; }
   }
   .drive-toast {
     position: fixed;
-    left: 50%;
+    left: 12px;
+    right: 12px;
     bottom: max(18px, env(safe-area-inset-bottom) + 14px);
-    transform: translateX(-50%);
     z-index: 80;
-    max-width: min(92vw, 380px);
-    padding: 12px 20px;
+    padding: 12px 16px;
     border-radius: 10px;
     background: #157a3d;
     color: #f0fff4;
     font-size: 13px;
     font-weight: 600;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     box-shadow: 0 10px 28px rgba(0,0,0,0.35);
   }
   .drive-toast-enter { animation: drive-toast-in 260ms ease-out; }
