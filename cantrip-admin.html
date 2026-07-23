@@ -1462,11 +1462,12 @@ function renderSidePanel() {
       '<p>"Publier" edite le profil <b>par defaut</b> code en dur (calixDefaultProfile()/' +
       'deneorDefaultProfile() dans index.html) — affecte les nouvelles installations et les ' +
       'reinitialisations, pas les parties deja en cours.</p>' +
-      '<p>"Sauvegarder sur Drive" ecrit ce profil dans <code>bdd.json</code> sur Google Drive, la ' +
-      'source que l\'app charge/sauvegarde en jeu (page "Charger un personnage") — ça <b>ecrase la ' +
-      'progression sauvegardee par un joueur</b> pour ce personnage avec un profil frais (PV au max, ' +
-      'rien d\'utilise). "Charger depuis Drive" fait l\'inverse : recupere dans ce formulaire ce qu\'un ' +
-      'joueur a sauvegarde en jeu.</p>' +
+      '<p>"Sauvegarder sur Drive" ecrit ce profil <b>et le Grimoire de ce personnage</b> (tel qu\'edite ' +
+      'dans le panneau "Grimoire") dans <code>bdd.json</code> sur Google Drive, la source que l\'app ' +
+      'charge/sauvegarde en jeu (page "Charger un personnage") — ça <b>ecrase la progression ' +
+      'sauvegardee par un joueur</b> pour ce personnage avec un profil frais (PV au max, rien ' +
+      'd\'utilise). "Charger depuis Drive" fait l\'inverse : recupere dans ce formulaire et dans le ' +
+      'panneau Grimoire ce qu\'un joueur a sauvegarde en jeu.</p>' +
       '<p>Tes modifications sont sauvegardees automatiquement dans ce navigateur.</p>';
     actions.innerHTML =
       '<button class="btn" id="btnResetMode">Reinitialiser les Personnages</button>' +
@@ -1718,8 +1719,14 @@ function driveLoadPersonnage() {
   driveLoadBdd().then(function (bdd) {
     var entry = bdd && bdd[charId];
     if (!entry || typeof entry !== 'object') throw new Error('Aucune sauvegarde pour ce personnage dans bdd.json sur Drive.');
-    sanitizeAdminProfile(entry);
-    state.profiles[charId] = entry;
+    // Compat avec bdd.json ecrit avant l'ajout du grimoire : entry etait alors le profil
+    // directement, sans cle "profile"/"grimoire".
+    var loadedProfile = (entry.profile && typeof entry.profile === 'object') ? entry.profile : entry;
+    sanitizeAdminProfile(loadedProfile);
+    state.profiles[charId] = loadedProfile;
+    // Pas de grimoire enregistre sur Drive pour ce personnage : on laisse le grimoire actuel de
+    // l'outil admin tel quel plutot que de l'effacer.
+    if (entry.grimoire && Array.isArray(entry.grimoire.sections)) state[charId] = entry.grimoire.sections;
     saveState();
     render();
     showToast('Le personnage a été chargé avec succès.', 'success');
@@ -1730,11 +1737,11 @@ function driveLoadPersonnage() {
 
 function driveSavePersonnage() {
   var charId = ui.activeChar;
-  if (!confirm('Ceci ecrase la sauvegarde "' + CHARACTER_NAMES[charId] + '" dans bdd.json sur Drive avec le profil actuel de cet outil admin (PV au max, emplacements/ressources non utilises). Toute progression en jeu deja sauvegardee par un joueur pour ce personnage sera perdue. Continuer ?')) return;
-  var full = deriveFullProfile(charId);
+  if (!confirm('Ceci ecrase dans bdd.json sur Drive la sauvegarde "' + CHARACTER_NAMES[charId] + '" (profil ET grimoire) avec le contenu actuel de cet outil admin : profil frais (PV au max, emplacements/ressources non utilises) et grimoire tel qu\'edite ici. Toute progression en jeu deja sauvegardee par un joueur pour ce personnage sera perdue. Continuer ?')) return;
+  var payload = { profile: deriveFullProfile(charId), grimoire: { sections: JSON.parse(JSON.stringify(state[charId])) } };
   showToast('Sauvegarde sur Drive...');
   driveSaveBdd(function (bdd) {
-    bdd[charId] = full;
+    bdd[charId] = payload;
     return bdd;
   }).then(function () {
     showToast('Le personnage a été sauvegardé avec succès.', 'success');

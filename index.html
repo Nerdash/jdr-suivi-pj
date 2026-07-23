@@ -486,7 +486,9 @@
   function makeCharacter(id, name, subtitle, level, portrait, theme, profile) {
     var p = profile || defaultProfile();
     p.characterName = name;
-    return { id: id, name: name, subtitle: subtitle, level: level, portrait: portrait, theme: theme, savedProfile: p };
+    // grimoire : null par défaut (utilise SPELLBOOK/DENEOR_SPELLBOOK codé en dur), rempli
+    // uniquement par un "Charger ce personnage" qui a trouvé un grimoire dans bdd.json sur Drive.
+    return { id: id, name: name, subtitle: subtitle, level: level, portrait: portrait, theme: theme, savedProfile: p, grimoire: null };
   }
 
   function defaultCharacters() {
@@ -536,6 +538,7 @@
           c.theme = defaults[id].theme;
           if (!c.savedProfile || typeof c.savedProfile !== 'object') c.savedProfile = defaults[id].savedProfile;
           else sanitizeProfile(c.savedProfile);
+          if (!c.grimoire || typeof c.grimoire !== 'object' || !Array.isArray(c.grimoire.sections)) c.grimoire = null;
         });
       }
       if (parsed.activeCharacterId !== 'calix' && parsed.activeCharacterId !== 'deneor') parsed.activeCharacterId = 'calix';
@@ -933,8 +936,16 @@
     ]
   };
 
+  // Grimoire d'un personnage : celui chargé depuis Drive (state.characters[id].grimoire) s'il
+  // existe, sinon le contenu par défaut codé en dur (SPELLBOOK/DENEOR_SPELLBOOK).
+  function characterGrimoire(charId) {
+    var loaded = state.characters[charId] && state.characters[charId].grimoire;
+    if (loaded && Array.isArray(loaded.sections)) return loaded;
+    return charId === 'deneor' ? DENEOR_SPELLBOOK : SPELLBOOK;
+  }
+
   function activeSpellbook() {
-    return state.activeCharacterId === 'deneor' ? DENEOR_SPELLBOOK : SPELLBOOK;
+    return characterGrimoire(state.activeCharacterId);
   }
 
   // Noms des sorts réellement préparables (hors sorts de serment "alwaysAvailable" et hors
@@ -944,7 +955,7 @@
   // badge — un profil corrompu de cette façon affichait un compteur > 0 sans aucun sort visible.
   function preparableSpellNames() {
     var names = [];
-    DENEOR_SPELLBOOK.sections.forEach(function (s) {
+    characterGrimoire('deneor').sections.forEach(function (s) {
       if (s.level === 'classe') return;
       s.spells.forEach(function (spell) { if (!spell.alwaysAvailable) names.push(spell.name); });
     });
@@ -1385,7 +1396,7 @@
     // Pastille verte sur les onglets contenant au moins un sort déjà préparé, pour repérer d'un
     // coup d'oeil où se trouvent les sorts comptés dans le badge (qui totalise tous les niveaux).
     var preparedLevels = {};
-    DENEOR_SPELLBOOK.sections.forEach(function (s) {
+    characterGrimoire('deneor').sections.forEach(function (s) {
       if (s.level === 'classe') return;
       s.spells.forEach(function (spell) {
         if (!spell.alwaysAvailable && ui.draftPreparedSpells.indexOf(spell.name) !== -1) preparedLevels[s.level] = true;
@@ -1400,7 +1411,7 @@
         '">' + escapeHtml(f.label) + '</div>';
     }).join('');
 
-    var matchingSections = DENEOR_SPELLBOOK.sections.filter(function (s) { return s.level === ui.grimoireTab; });
+    var matchingSections = characterGrimoire('deneor').sections.filter(function (s) { return s.level === ui.grimoireTab; });
     var preparableSections = matchingSections.map(function (s) {
       return { title: s.title, levelTag: s.levelTag, level: s.level, spells: s.spells.filter(function (spell) { return !spell.alwaysAvailable; }) };
     });
@@ -2492,9 +2503,14 @@
         driveLoadBdd().then(function (bdd) {
           var entry = bdd && bdd[driveLoadId];
           if (!entry || typeof entry !== 'object') throw new Error('Aucune sauvegarde pour ce personnage dans bdd.json sur Drive.');
-          sanitizeProfile(entry);
-          state.characters[driveLoadId].savedProfile = entry;
-          state.profiles[state.activeProfileIndex] = cloneDeep(entry);
+          // Compat avec bdd.json écrit avant l'ajout du grimoire : entry était alors le profil
+          // directement, sans clé "profile"/"grimoire".
+          var loadedProfile = (entry.profile && typeof entry.profile === 'object') ? entry.profile : entry;
+          var loadedGrimoire = (entry.grimoire && Array.isArray(entry.grimoire.sections)) ? entry.grimoire : null;
+          sanitizeProfile(loadedProfile);
+          state.characters[driveLoadId].savedProfile = loadedProfile;
+          state.characters[driveLoadId].grimoire = loadedGrimoire;
+          state.profiles[state.activeProfileIndex] = cloneDeep(loadedProfile);
           state.activeCharacterId = driveLoadId;
           applyTheme();
           saveState();
@@ -2514,8 +2530,13 @@
         ui.driveBusy = true; ui.driveError = null; render();
         var driveSaveId = state.activeCharacterId;
         var driveSaveProfile = cloneDeep(profile());
+        // Le grimoire n'est pas éditable depuis l'app : on réécrit uniquement le profil, en
+        // conservant tel quel le grimoire déjà présent dans bdd.json (posé par l'admin) plutôt
+        // que de l'écraser avec rien.
         driveSaveBdd(function (bdd) {
-          bdd[driveSaveId] = driveSaveProfile;
+          var existingEntry = (bdd[driveSaveId] && typeof bdd[driveSaveId] === 'object') ? bdd[driveSaveId] : {};
+          var existingGrimoire = (existingEntry.grimoire && Array.isArray(existingEntry.grimoire.sections)) ? existingEntry.grimoire : (state.characters[driveSaveId].grimoire || null);
+          bdd[driveSaveId] = { profile: driveSaveProfile, grimoire: existingGrimoire };
           return bdd;
         }).then(function () {
           state.characters[driveSaveId].savedProfile = cloneDeep(driveSaveProfile);
